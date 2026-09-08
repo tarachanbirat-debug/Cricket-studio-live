@@ -35,6 +35,16 @@
         }
       }
     };
+
+    // ZERO-LATENCY OVERLAY DETECTION BEFORE CSS OR DOM PAINTS
+    (function() {
+      try {
+        var h = window.location.href;
+        if (h.indexOf('overlay') !== -1 || window.location.search.indexOf('overlay=1') !== -1) {
+          document.documentElement.classList.add('prism-overlay-mode');
+        }
+      } catch (e) {}
+    })();
   </script>
 
   <style>
@@ -43,7 +53,7 @@
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
-    body {
+    body:not(.prism-overlay-mode) {
       background-color: #070a12;
       color: #f3f4f6;
       font-family: 'Inter', sans-serif;
@@ -53,7 +63,8 @@
 
     /* 100% TRANSPARENT PRISM / OBS OVERLAY ENGINE */
     html.prism-overlay-mode,
-    body.prism-overlay-mode {
+    html.prism-overlay-mode body,
+    html.prism-overlay-mode #standaloneOverlayCanvas {
       background: transparent !important;
       background-color: transparent !important;
       overflow: hidden !important;
@@ -71,8 +82,10 @@
       pointer-events: none;
       flex-direction: column;
       justify-content: flex-end;
-      padding: 16px;
+      padding: 12px;
       z-index: 99999;
+      background: transparent !important;
+      background-color: transparent !important;
     }
 
     .pt-android-safe {
@@ -523,30 +536,30 @@
             </div>
           </div>
 
-          <!-- THEME 1: PURPLE / WHITE -->
-          <div id="tvThemePurpleWhite" class="w-full rounded-2xl overflow-hidden shadow-2xl border border-purple-900/40 bg-white text-gray-900 font-sans transition-all">
+          <!-- THEME 1: ROYAL PURPLE & MAGENTA GLASS (IPL BROADCAST) -->
+          <div id="tvThemePurpleWhite" class="w-full rounded-2xl overflow-hidden shadow-2xl border-2 border-purple-500/50 bg-[#120626]/95 backdrop-blur-md text-white font-sans transition-all">
             <div class="flex items-stretch">
-              <div class="hidden sm:flex items-center justify-center bg-white px-3 border-r border-gray-200 shrink-0">
-                <div class="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center text-white text-sm shadow">🏏</div>
+              <div class="hidden sm:flex items-center justify-center bg-[#1d0a3d] px-3 border-r border-purple-800/60 shrink-0">
+                <div class="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center text-white text-sm shadow">🏏</div>
               </div>
-              <div class="flex-1 bg-white p-2 sm:p-2.5 flex flex-col justify-center border-r border-gray-200 min-w-0">
+              <div class="flex-1 bg-[#16082e]/90 p-2 sm:p-2.5 flex flex-col justify-center border-r border-purple-800/60 min-w-0">
                 <div class="flex items-center justify-between py-0.5 text-xs">
-                  <div class="flex items-center gap-1 font-bold text-gray-900 truncate">
-                    <span class="text-emerald-600 text-[10px]">▶</span>
-                    <span id="pwStrikerName" class="truncate uppercase font-black text-xs">STRIKER</span>
+                  <div class="flex items-center gap-1 font-bold text-white truncate">
+                    <span class="text-pink-400 text-[10px]">▶</span>
+                    <span id="pwStrikerName" class="truncate uppercase font-black text-xs text-white">STRIKER</span>
                   </div>
-                  <div class="font-mono font-bold text-gray-800 ml-1 shrink-0">
-                    <span id="pwStrikerRuns">0</span><span class="text-[10px] text-gray-500 font-normal">(<span id="pwStrikerBalls">0</span>)</span>
+                  <div class="font-mono font-bold text-amber-300 ml-1 shrink-0">
+                    <span id="pwStrikerRuns">0</span><span class="text-[10px] text-gray-400 font-normal">(<span id="pwStrikerBalls">0</span>)</span>
                   </div>
                 </div>
-                <div class="flex items-center justify-between py-0.5 text-xs border-t border-gray-100">
-                  <span id="pwNonStrikerName" class="truncate uppercase font-bold text-[11px] text-gray-700 pl-2">NON-STRIKER</span>
-                  <div class="font-mono font-bold text-gray-800 ml-1 shrink-0">
-                    <span id="pwNonStrikerRuns">0</span><span class="text-[10px] text-gray-500 font-normal">(<span id="pwNonStrikerBalls">0</span>)</span>
+                <div class="flex items-center justify-between py-0.5 text-xs border-t border-purple-900/50">
+                  <span id="pwNonStrikerName" class="truncate uppercase font-bold text-[11px] text-gray-300 pl-2">NON-STRIKER</span>
+                  <div class="font-mono font-bold text-gray-300 ml-1 shrink-0">
+                    <span id="pwNonStrikerRuns">0</span><span class="text-[10px] text-gray-400 font-normal">(<span id="pwNonStrikerBalls">0</span>)</span>
                   </div>
                 </div>
               </div>
-              <div class="bg-[#24064d] text-white px-3 sm:px-4 py-2 flex flex-col items-center justify-center shrink-0">
+              <div class="bg-gradient-to-r from-[#28084c] to-[#3b096a] text-white px-3 sm:px-4 py-2 flex flex-col items-center justify-center shrink-0 border-x border-purple-500/30">
                 <div class="flex items-center gap-1.5 font-mono">
                   <span id="pwTeamACode" class="text-[11px] font-black text-purple-200">BAT</span>
                   <span class="bg-[#ff007f] text-white px-2.5 py-0.5 rounded-full font-black text-sm sm:text-base shadow">
@@ -555,13 +568,13 @@
                   <span class="text-[11px] text-purple-200">Ov <strong id="pwOvers" class="text-white">0.0</strong></span>
                 </div>
                 <div class="text-[9px] tracking-wider text-purple-200 mt-0.5 uppercase font-mono">
-                  P'SHIP: <strong id="pwPartnership" class="text-white">0</strong> (<span id="pwPartnershipBalls">0</span>b)
+                  P'SHIP: <strong id="pwPartnership" class="text-amber-300">0</strong> (<span id="pwPartnershipBalls">0</span>b)
                 </div>
               </div>
-              <div class="flex-1 bg-white p-2 sm:p-2.5 flex flex-col justify-center border-l border-gray-200 min-w-0">
+              <div class="flex-1 bg-[#16082e]/90 p-2 sm:p-2.5 flex flex-col justify-center border-l border-purple-800/60 min-w-0">
                 <div class="flex items-center justify-between text-xs mb-1">
-                  <span id="pwBowlerName" class="font-black text-gray-900 uppercase text-xs truncate">BOWLER</span>
-                  <span class="font-mono text-gray-800 text-[11px] font-bold shrink-0">
+                  <span id="pwBowlerName" class="font-black text-white uppercase text-xs truncate">BOWLER</span>
+                  <span class="font-mono text-cyan-300 text-[11px] font-bold shrink-0">
                     <span id="pwBowlerW">0</span>-<span id="pwBowlerR">0</span> (<span id="pwBowlerO">0.0</span>)
                   </span>
                 </div>
@@ -922,7 +935,7 @@
               <div class="grid grid-cols-3 gap-2 text-xs">
                 <button onclick="changeActiveTheme('purple_white')" id="themeBtn_purple_white" class="p-3 rounded-2xl border border-purple-500 bg-purple-950/30 text-left btn-touch transition">
                   <div class="text-[9px] font-bold text-purple-300 uppercase">Style 1</div>
-                  <div class="font-extrabold text-white text-xs">Purple/White</div>
+                  <div class="font-extrabold text-white text-xs">Royal Purple</div>
                 </button>
                 <button onclick="changeActiveTheme('stadium_blue')" id="themeBtn_stadium_blue" class="p-3 rounded-2xl border border-gray-800 bg-[#182032] text-left btn-touch transition">
                   <div class="text-[9px] font-bold text-cyan-300 uppercase">Style 2</div>
@@ -1494,6 +1507,8 @@
       if (toast) showToast(`✅ Watermark: ${currentWatermarkText}`);
     }
 
+    let lastHandledAnimEventId = null;
+
     function checkAndListenToFirebaseMatch() {
       if (!firebaseDb) return;
       const fullUrl = window.location.href;
@@ -1516,9 +1531,16 @@
               applyWatermark(val.watermark, val.showWatermark !== false);
             }
             updateMasterUI(false);
-            if (val.animText) {
-              triggerBroadcastTestAlert(val.animText);
+
+            // Fresh Animation Event Only (e.g. Six, Four, Wicket) - never replay old animations
+            if (val.animEvent && val.animEvent.id && val.animEvent.id !== lastHandledAnimEventId) {
+              lastHandledAnimEventId = val.animEvent.id;
+              const age = Date.now() - (val.animEvent.timestamp || 0);
+              if (age >= 0 && age < 3500) {
+                triggerBroadcastTestAlert(val.animEvent.text);
+              }
             }
+
             if (val.broadcastGraphic) {
               if (val.broadcastGraphic.type === 'hide') {
                 renderBroadcastGraphic('hide');
@@ -1532,9 +1554,8 @@
     }
 
     function detectOverlayMode() {
-      const hash = window.location.hash;
-      const search = window.location.search;
-      if (hash.includes('overlay') || search.includes('overlay=1')) {
+      const href = window.location.href;
+      if (href.includes('overlay') || window.location.search.includes('overlay=1')) {
         isPrismOverlayMode = true;
         document.documentElement.classList.add('prism-overlay-mode');
         document.body.classList.add('prism-overlay-mode');
@@ -1781,14 +1802,23 @@
         // Realtime Firebase Cloud Sync for Prism / OBS overlays
         if (firebaseDb && MATCH_DATA.meta && MATCH_DATA.meta.started) {
           const matchId = getOrCreateMatchId();
-          firebaseDb.ref('live_matches/' + matchId).update({
+          const updateData = {
             data: MATCH_DATA,
             theme: activeStripTheme,
             watermark: currentWatermarkText,
             showWatermark: currentShowWatermark,
-            animText: animText || null,
             updatedAt: Date.now()
-          });
+          };
+          if (animText) {
+            updateData.animEvent = {
+              text: animText,
+              id: 'anim_' + Date.now() + '_' + Math.floor(Math.random() * 10000),
+              timestamp: Date.now()
+            };
+          }
+          firebaseDb.ref('live_matches/' + matchId).update(updateData);
+          // Delete legacy animText key so it never interferes
+          firebaseDb.ref('live_matches/' + matchId + '/animText').remove();
         }
       } catch (e) {
         console.warn("broadcast error:", e);
@@ -2508,6 +2538,9 @@
       if (firebaseDb && MATCH_DATA.meta && MATCH_DATA.meta.started) {
         const matchId = getOrCreateMatchId();
         firebaseDb.ref('live_matches/' + matchId + '/broadcastGraphic').set(payload);
+        // Clean out any lingering animation event in Firebase so it never falsely replays!
+        firebaseDb.ref('live_matches/' + matchId + '/animEvent').remove();
+        firebaseDb.ref('live_matches/' + matchId + '/animText').remove();
       }
       if (type !== 'hide') {
         const labels = {
@@ -2528,6 +2561,13 @@
       const lowerContent = document.getElementById('overlayBroadcastCardContent');
       const fullCard = document.getElementById('overlayFullScreenCard');
       const fullContent = document.getElementById('overlayFullScreenCardContent');
+      const alertWrap = document.getElementById('overlayAlertWrapper');
+
+      // Dismiss any active Four/Six/Out badge immediately when switching/showing banners
+      if (alertWrap) {
+        alertWrap.classList.add('hidden');
+        if (alertWrap._timer) clearTimeout(alertWrap._timer);
+      }
 
       if (broadcastGraphicTimer) {
         clearTimeout(broadcastGraphicTimer);
@@ -2945,9 +2985,14 @@
     }
 
     function triggerBroadcastTestAlert(text) {
+      if (!text || !text.trim()) return;
       const wrap = document.getElementById('overlayAlertWrapper');
       const badge = document.getElementById('overlayAlertBadge');
       if (!wrap || !badge) return;
+
+      // Hide lower-third graphic so alert doesn't awkwardly clash with it
+      const lowerWrap = document.getElementById('overlayBroadcastCardWrapper');
+      if (lowerWrap) lowerWrap.classList.add('hidden');
 
       const upper = (text || '').toUpperCase();
       let baseClass = "w-full py-3.5 sm:py-5 px-4 rounded-2xl text-white font-tv font-black text-2xl sm:text-4xl md:text-5xl text-center uppercase tracking-widest shadow-2xl border-4 border-white flex items-center justify-center gap-3 transition-transform animate-bounce";

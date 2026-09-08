@@ -11,6 +11,10 @@
   <!-- Canvas Confetti CDN for Milestone & Match Celebrations -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 
+  <!-- Firebase App & Realtime Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1175,6 +1179,38 @@
     let audioCtx = null;
     let isPrismOverlayMode = false;
 
+    // FIREBASE REALTIME CLOUD SYNC CONFIGURATION
+    const firebaseConfig = {
+      apiKey: "AIzaSyD3nvL0_ekdix6OLsElDTd6vQBkRZgNnUo",
+      authDomain: "cricscoresandeep.firebaseapp.com",
+      databaseURL: "https://cricscoresandeep-default-rtdb.firebaseio.com",
+      projectId: "cricscoresandeep",
+      storageBucket: "cricscoresandeep.firebasestorage.app",
+      messagingSenderId: "783057176240",
+      appId: "1:783057176240:web:2dededa9a16287ac4f9d75",
+      measurementId: "G-WR2PBFQ2PB"
+    };
+
+    let firebaseDb = null;
+    try {
+      if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+        firebaseDb = firebase.database();
+      } else if (typeof firebase !== 'undefined') {
+        firebaseDb = firebase.database();
+      }
+    } catch (e) {
+      console.warn("Firebase Init:", e);
+    }
+
+    function getOrCreateMatchId() {
+      if (!MATCH_DATA.meta) MATCH_DATA.meta = {};
+      if (!MATCH_DATA.meta.id) {
+        MATCH_DATA.meta.id = 'cric_' + Math.floor(100000 + Math.random() * 900000);
+      }
+      return MATCH_DATA.meta.id;
+    }
+
     // Local channel for real-time overlay synchronization
     const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('cricbest_live_bus') : null;
     if (syncChannel) {
@@ -1242,6 +1278,33 @@
       }
     }
 
+    function checkAndListenToFirebaseMatch() {
+      if (!firebaseDb) return;
+      const fullUrl = window.location.href;
+      let matchId = null;
+      if (fullUrl.includes('match=')) {
+        const after = fullUrl.split('match=')[1];
+        matchId = after.split('&')[0].split('#')[0];
+      }
+      if (matchId) {
+        console.log("Subscribing to live match updates via Firebase:", matchId);
+        firebaseDb.ref('live_matches/' + matchId).on('value', (snap) => {
+          const val = snap.val();
+          if (val && val.data) {
+            MATCH_DATA = val.data;
+            if (val.theme) {
+              activeStripTheme = val.theme;
+              applyThemeUI(activeStripTheme);
+            }
+            updateMasterUI(false);
+            if (val.animText) {
+              triggerBroadcastTestAlert(val.animText);
+            }
+          }
+        });
+      }
+    }
+
     function detectOverlayMode() {
       const hash = window.location.hash;
       const search = window.location.search;
@@ -1249,6 +1312,7 @@
         isPrismOverlayMode = true;
         document.documentElement.classList.add('prism-overlay-mode');
         document.body.classList.add('prism-overlay-mode');
+        checkAndListenToFirebaseMatch();
       } else {
         isPrismOverlayMode = false;
         document.documentElement.classList.remove('prism-overlay-mode');
@@ -1257,8 +1321,10 @@
     }
 
     function getCleanOverlayUrl() {
-      const base = window.location.href.split('#')[0].split('?')[0];
-      return `${base}#overlay?theme=${activeStripTheme}`;
+      const matchId = getOrCreateMatchId();
+      // Official Live Hosted URL on GitHub Pages
+      const liveHost = 'https://tarachanbirat-debug.github.io/Cricket-studio-live';
+      return `${liveHost}/#overlay?theme=${activeStripTheme}&match=${matchId}`;
     }
 
     function copyPrismOverlayLink() {
@@ -1486,7 +1552,19 @@
           syncChannel.postMessage({ type: 'SYNC_MATCH', payload: MATCH_DATA, theme: activeStripTheme });
           if (animText) syncChannel.postMessage({ type: 'TRIGGER_ANIMATION', text: animText });
         }
-      } catch (e) {}
+        // Realtime Firebase Cloud Sync for Prism / OBS overlays
+        if (firebaseDb && MATCH_DATA.meta && MATCH_DATA.meta.started) {
+          const matchId = getOrCreateMatchId();
+          firebaseDb.ref('live_matches/' + matchId).set({
+            data: MATCH_DATA,
+            theme: activeStripTheme,
+            animText: animText || null,
+            updatedAt: Date.now()
+          });
+        }
+      } catch (e) {
+        console.warn("broadcast error:", e);
+      }
     }
 
     function updateMasterUI(shouldBroadcast = true, animText = null) {

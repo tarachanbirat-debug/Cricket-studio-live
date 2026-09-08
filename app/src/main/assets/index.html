@@ -160,6 +160,17 @@
 
   <!-- STANDALONE PRISM / OBS TRANSPARENT OVERLAY CANVAS -->
   <div id="standaloneOverlayCanvas" class="hidden">
+    <!-- FULL SCREEN BROADCAST SCORECARD OVERLAY POPUP -->
+    <div id="overlayFullScreenCard" class="hidden fixed inset-0 z-[100000] bg-black/90 backdrop-blur-md flex flex-col justify-center items-center p-3 sm:p-6 pointer-events-none transition-all duration-500">
+      <div id="overlayFullScreenCardContent" class="w-full max-w-4xl bg-gradient-to-b from-[#0f172a] to-[#070b14] border-2 border-indigo-500/50 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 text-white font-sans max-h-[92vh] overflow-y-auto custom-scroll">
+      </div>
+    </div>
+
+    <!-- LOWER-THIRD BROADCAST POPUP BANNER (PARTNERSHIP / STATS / MANHATTAN GRAPH) -->
+    <div id="overlayBroadcastCardWrapper" class="hidden w-full max-w-5xl mx-auto mb-2 pointer-events-none transition-all duration-500 transform">
+      <div id="overlayBroadcastCardContent" class="w-full"></div>
+    </div>
+
     <!-- CLEAN TRANSPARENT WATERMARK (NO LOGO, ONLY TEXT OVER RIGHT SECTION) -->
     <div id="overlayWatermarkBadge" class="self-end mr-6 sm:mr-12 mb-1 pointer-events-none select-none z-30">
       <span id="overlayWatermarkText" class="text-white/70 font-tv font-black text-xs sm:text-sm tracking-[0.25em] uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">CRIC SCORE SANDEEP</span>
@@ -746,6 +757,41 @@
             </div>
           </div>
 
+          <!-- TV BROADCAST GRAPHICS CONTROLLER (LIVE ON OVERLAY) -->
+          <div class="bg-[#121826] border border-gray-800 rounded-3xl p-3.5 shadow-xl space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-bold text-gray-200 uppercase tracking-wider flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></span>
+                <span>Live TV Banners (Prism Overlay)</span>
+              </span>
+              <button onclick="triggerBroadcastGraphic('hide')" class="text-[10px] font-bold px-2.5 py-1 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 btn-touch">
+                ✖️ Hide
+              </button>
+            </div>
+            <div class="grid grid-cols-5 gap-1.5 text-center">
+              <button onclick="triggerBroadcastGraphic('partnership')" title="पार्टनरशिप बैनर" class="py-2.5 px-1 rounded-2xl bg-indigo-600/25 hover:bg-indigo-600 border border-indigo-500/40 text-indigo-200 hover:text-white font-bold text-[10px] sm:text-xs btn-touch transition flex flex-col items-center gap-1">
+                <span class="text-sm">🤝</span>
+                <span class="truncate w-full">Partnership</span>
+              </button>
+              <button onclick="triggerBroadcastGraphic('batter')" title="स्ट्राइक रेट व रन" class="py-2.5 px-1 rounded-2xl bg-emerald-600/25 hover:bg-emerald-600 border border-emerald-500/40 text-emerald-200 hover:text-white font-bold text-[10px] sm:text-xs btn-touch transition flex flex-col items-center gap-1">
+                <span class="text-sm">🏏</span>
+                <span class="truncate w-full">Batter & SR</span>
+              </button>
+              <button onclick="triggerBroadcastGraphic('bowler')" title="बॉलर स्पेल व इकॉनमी" class="py-2.5 px-1 rounded-2xl bg-cyan-600/25 hover:bg-cyan-600 border border-cyan-500/40 text-cyan-200 hover:text-white font-bold text-[10px] sm:text-xs btn-touch transition flex flex-col items-center gap-1">
+                <span class="text-sm">🎯</span>
+                <span class="truncate w-full">Bowler Spell</span>
+              </button>
+              <button onclick="triggerBroadcastGraphic('manhattan')" title="किस ओवर में कितने रन व रन रेट" class="py-2.5 px-1 rounded-2xl bg-amber-600/25 hover:bg-amber-600 border border-amber-500/40 text-amber-200 hover:text-white font-bold text-[10px] sm:text-xs btn-touch transition flex flex-col items-center gap-1">
+                <span class="text-sm">📊</span>
+                <span class="truncate w-full">Run Graph</span>
+              </button>
+              <button onclick="triggerBroadcastGraphic('full_scorecard')" title="फुल स्क्रीन टीवी स्कोरकार्ड" class="py-2.5 px-1 rounded-2xl bg-purple-600/25 hover:bg-purple-600 border border-purple-500/40 text-purple-200 hover:text-white font-bold text-[10px] sm:text-xs btn-touch transition flex flex-col items-center gap-1">
+                <span class="text-sm">📋</span>
+                <span class="truncate w-full">Scorecard</span>
+              </button>
+            </div>
+          </div>
+
           <!-- Commentary Feed -->
           <div class="bg-[#121826] border border-gray-800 rounded-3xl p-4 shadow-xl">
             <div class="flex items-center justify-between mb-2">
@@ -913,6 +959,69 @@
               <button onclick="triggerBroadcastTestAlert('SIX!')" class="py-2.5 rounded-xl bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold text-[11px] btn-touch">Test 6</button>
               <button onclick="triggerBroadcastTestAlert('OUT!')" class="py-2.5 rounded-xl bg-red-600/30 border border-red-500/40 text-red-300 font-bold text-[11px] btn-touch">Test Out</button>
               <button onclick="triggerBroadcastTestAlert('WIDE!')" class="py-2.5 rounded-xl bg-amber-600/30 border border-amber-500/40 text-amber-300 font-bold text-[11px] btn-touch">Test Wide</button>
+            </div>
+
+            <!-- TV BROADCAST OVERLAY GRAPHICS CONTROLLER -->
+            <div class="p-4 bg-[#182032] rounded-2xl border border-gray-800 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-gray-200 uppercase tracking-wider flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                  <span>TV Broadcast Graphics (लाइव ओवरले बैनर्स)</span>
+                </span>
+                <button onclick="triggerBroadcastGraphic('hide')" class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-800 text-gray-400 hover:text-white border border-gray-700 btn-touch">
+                  Hide Banner
+                </button>
+              </div>
+              <p class="text-[11px] text-gray-400">नीचे किसी भी बटन पर क्लिक करने से Prism Studio के लाइव कैमरे पर प्रोफेशनल टीवी बैनर आ जाएगा:</p>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                <button onclick="triggerBroadcastGraphic('partnership', 7000)" class="p-2.5 rounded-xl bg-indigo-600/25 hover:bg-indigo-600 border border-indigo-500/40 text-left btn-touch transition flex items-center gap-2">
+                  <span class="text-lg">🤝</span>
+                  <div>
+                    <div class="font-bold text-white text-xs">Partnership</div>
+                    <div class="text-[10px] text-indigo-300">पार्टनरशिप बैनर</div>
+                  </div>
+                </button>
+                <button onclick="triggerBroadcastGraphic('batter', 7000)" class="p-2.5 rounded-xl bg-emerald-600/25 hover:bg-emerald-600 border border-emerald-500/40 text-left btn-touch transition flex items-center gap-2">
+                  <span class="text-lg">🏏</span>
+                  <div>
+                    <div class="font-bold text-white text-xs">Batter & SR</div>
+                    <div class="text-[10px] text-emerald-300">स्ट्राइक रेट व बाउंड्रीज</div>
+                  </div>
+                </button>
+                <button onclick="triggerBroadcastGraphic('bowler', 7000)" class="p-2.5 rounded-xl bg-cyan-600/25 hover:bg-cyan-600 border border-cyan-500/40 text-left btn-touch transition flex items-center gap-2">
+                  <span class="text-lg">🎯</span>
+                  <div>
+                    <div class="font-bold text-white text-xs">Bowler Figures</div>
+                    <div class="text-[10px] text-cyan-300">स्पेल, इकॉनमी, डॉट्स</div>
+                  </div>
+                </button>
+                <button onclick="triggerBroadcastGraphic('manhattan', 8000)" class="p-2.5 rounded-xl bg-amber-600/25 hover:bg-amber-600 border border-amber-500/40 text-left btn-touch transition flex items-center gap-2">
+                  <span class="text-lg">📊</span>
+                  <div>
+                    <div class="font-bold text-white text-xs">Run Graph</div>
+                    <div class="text-[10px] text-amber-300">ओवर-वाइज रन व ग्राफ</div>
+                  </div>
+                </button>
+                <button onclick="triggerBroadcastGraphic('full_scorecard', 8000)" class="p-2.5 rounded-xl bg-purple-600/25 hover:bg-purple-600 border border-purple-500/40 text-left btn-touch transition flex items-center gap-2 col-span-2 sm:col-span-2">
+                  <span class="text-lg">📋</span>
+                  <div>
+                    <div class="font-bold text-white text-xs">Full Screen Scorecard Popup</div>
+                    <div class="text-[10px] text-purple-300">फुल स्क्रीन टीवी स्कोरकार्ड (8 सेकंड)</div>
+                  </div>
+                </button>
+              </div>
+
+              <!-- AUTO OVER BROADCAST TOGGLE -->
+              <div class="pt-2 border-t border-gray-700/60 flex items-center justify-between">
+                <div>
+                  <div class="text-[11px] font-bold text-gray-200">ओवर खत्म होने पर ऑटो ग्राफिक्स</div>
+                  <div class="text-[10px] text-gray-400">हर 6 गेंद बाद टीवी पर अपने आप पार्टनरशिप/ओवर ग्राफ दिखाएगा</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggleAutoOverSummary" checked onchange="saveAutoOverSetting()" class="sr-only peer">
+                  <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -1259,6 +1368,8 @@
           updateMasterUI(false);
         } else if (e.data && e.data.type === 'TRIGGER_ANIMATION') {
           triggerBroadcastTestAlert(e.data.text);
+        } else if (e.data && e.data.type === 'BROADCAST_GRAPHIC' && e.data.graphic) {
+          renderBroadcastGraphic(e.data.graphic.type, e.data.graphic.duration);
         }
       };
     }
@@ -1407,6 +1518,13 @@
             updateMasterUI(false);
             if (val.animText) {
               triggerBroadcastTestAlert(val.animText);
+            }
+            if (val.broadcastGraphic) {
+              if (val.broadcastGraphic.type === 'hide') {
+                renderBroadcastGraphic('hide');
+              } else if (Date.now() - (val.broadcastGraphic.timestamp || 0) < 25000) {
+                renderBroadcastGraphic(val.broadcastGraphic.type, val.broadcastGraphic.duration || 6000);
+              }
             }
           }
         });
@@ -1663,7 +1781,7 @@
         // Realtime Firebase Cloud Sync for Prism / OBS overlays
         if (firebaseDb && MATCH_DATA.meta && MATCH_DATA.meta.started) {
           const matchId = getOrCreateMatchId();
-          firebaseDb.ref('live_matches/' + matchId).set({
+          firebaseDb.ref('live_matches/' + matchId).update({
             data: MATCH_DATA,
             theme: activeStripTheme,
             watermark: currentWatermarkText,
@@ -1938,6 +2056,17 @@
         inn.previousBowlerIndex = inn.currentBowlerIndex;
         inn.awaitingNewBowler = true;
         showToast(`ओवर ${inn.overs} समाप्त! अगला बॉलर चुनें।`);
+
+        // Automatically show over-by-over analysis or partnership on TV broadcast overlay
+        if (autoBroadcastOverSummary) {
+          setTimeout(() => {
+            if (inn.overs % 2 === 1) {
+              triggerBroadcastGraphic('manhattan', 7000);
+            } else {
+              triggerBroadcastGraphic('partnership', 7000);
+            }
+          }, 600);
+        }
 
         setTimeout(() => {
           openChangeBowlerDialog(true);
@@ -2288,6 +2417,394 @@
           badge.innerHTML = `<span class="text-xl sm:text-2xl">🏆</span> <span>${res}</span> <span class="text-xl sm:text-2xl">🏆</span>`;
           target.appendChild(badge);
         }
+      }
+    }
+
+    let broadcastGraphicTimer = null;
+    let autoBroadcastOverSummary = localStorage.getItem('cric_auto_over_broadcast') !== 'false';
+
+    function saveAutoOverSetting() {
+      const toggle = document.getElementById('toggleAutoOverSummary');
+      if (toggle) {
+        autoBroadcastOverSummary = toggle.checked;
+        localStorage.setItem('cric_auto_over_broadcast', autoBroadcastOverSummary.toString());
+        showToast(autoBroadcastOverSummary ? '✅ ओवर खत्म होने पर ऑटो ग्राफिक्स ऑन!' : '⏸️ ऑटो ग्राफिक्स ऑफ!');
+      }
+    }
+
+    function getOverSummaries(inn) {
+      const oversMap = [];
+      if (!inn || !inn.history) return oversMap;
+      
+      inn.history.forEach(d => {
+        let ovNum = 0;
+        if (d.ballIndex) {
+          ovNum = parseInt(d.ballIndex.split('.')[0], 10);
+        }
+        if (!oversMap[ovNum]) {
+          oversMap[ovNum] = { overNumber: ovNum + 1, runs: 0, wickets: 0, balls: [], bowler: d.bowler };
+        }
+        oversMap[ovNum].runs += (d.runs || 0);
+        if (d.type === 'wicket') oversMap[ovNum].wickets += 1;
+        oversMap[ovNum].balls.push(d);
+      });
+      return oversMap.filter(Boolean);
+    }
+
+    function getCurrentPartnership(inn) {
+      if (!inn) return { runs: 0, balls: 0, strikerRuns: 0, strikerBalls: 0, nonStrikerRuns: 0, nonStrikerBalls: 0, strikerName: '', nonStrikerName: '' };
+      
+      const striker = inn.batters[inn.strikerIndex] || { name: 'Striker', runs: 0, balls: 0 };
+      const nonStriker = inn.batters[inn.nonStrikerIndex] || { name: 'Non-Striker', runs: 0, balls: 0 };
+      
+      let lastWicketIndex = -1;
+      for (let i = (inn.history || []).length - 1; i >= 0; i--) {
+        if (inn.history[i].type === 'wicket') {
+          lastWicketIndex = i;
+          break;
+        }
+      }
+      
+      let pRuns = 0;
+      let pBalls = 0;
+      let sRuns = 0;
+      let sBalls = 0;
+      let nsRuns = 0;
+      let nsBalls = 0;
+      
+      const relevantHistory = (inn.history || []).slice(lastWicketIndex + 1);
+      relevantHistory.forEach(d => {
+        pRuns += (d.runs || 0);
+        if (d.type !== 'wide') pBalls += 1;
+        
+        if (d.striker === striker.name) {
+          sRuns += (d.runs || 0);
+          if (d.type !== 'wide') sBalls += 1;
+        } else if (d.striker === nonStriker.name) {
+          nsRuns += (d.runs || 0);
+          if (d.type !== 'wide') nsBalls += 1;
+        }
+      });
+      
+      return {
+        runs: pRuns,
+        balls: pBalls,
+        strikerName: striker.name,
+        strikerRuns: sRuns,
+        strikerBalls: sBalls,
+        nonStrikerName: nonStriker.name,
+        nonStrikerRuns: nsRuns,
+        nonStrikerBalls: nsBalls
+      };
+    }
+
+    function triggerBroadcastGraphic(type, duration = 6000) {
+      renderBroadcastGraphic(type, duration);
+      
+      const payload = { type, duration, timestamp: Date.now() };
+      if (syncChannel) {
+        syncChannel.postMessage({ type: 'BROADCAST_GRAPHIC', graphic: payload });
+      }
+      if (firebaseDb && MATCH_DATA.meta && MATCH_DATA.meta.started) {
+        const matchId = getOrCreateMatchId();
+        firebaseDb.ref('live_matches/' + matchId + '/broadcastGraphic').set(payload);
+      }
+      if (type !== 'hide') {
+        const labels = {
+          partnership: '🤝 Partnership Banner',
+          batter: '🏏 Batter Stats & SR',
+          bowler: '🎯 Bowler Spell & Economy',
+          manhattan: '📊 Run Graph & Over Analysis',
+          full_scorecard: '📋 Full Screen Scorecard'
+        };
+        showToast(`📺 Broadcast: ${labels[type] || type} sent!`);
+      } else {
+        showToast('Banner hidden');
+      }
+    }
+
+    function renderBroadcastGraphic(type, duration = 6000) {
+      const lowerWrap = document.getElementById('overlayBroadcastCardWrapper');
+      const lowerContent = document.getElementById('overlayBroadcastCardContent');
+      const fullCard = document.getElementById('overlayFullScreenCard');
+      const fullContent = document.getElementById('overlayFullScreenCardContent');
+
+      if (broadcastGraphicTimer) {
+        clearTimeout(broadcastGraphicTimer);
+        broadcastGraphicTimer = null;
+      }
+
+      if (type === 'hide') {
+        if (lowerWrap) lowerWrap.classList.add('hidden');
+        if (fullCard) fullCard.classList.add('hidden');
+        return;
+      }
+
+      const inn = getCurrentInnings();
+      if (!inn) return;
+
+      const striker = inn.batters[inn.strikerIndex] || { name: 'Batter 1', runs: 0, balls: 0, fours: 0, sixes: 0, out: false };
+      const nonStriker = inn.batters[inn.nonStrikerIndex] || { name: 'Batter 2', runs: 0, balls: 0, fours: 0, sixes: 0, out: false };
+      const bowler = inn.bowlers[inn.currentBowlerIndex] || { name: 'Bowler', balls: 0, runs: 0, wickets: 0, maidens: 0, dots: 0 };
+      const oversFloat = inn.overs + (inn.ballsInOver / 6);
+      const oversText = `${inn.overs}.${inn.ballsInOver}`;
+      const bowlerOvers = `${Math.floor(bowler.balls / 6)}.${bowler.balls % 6}`;
+      const crr = oversFloat > 0 ? (inn.runs / oversFloat).toFixed(2) : '0.00';
+      const bowlerEcon = bowler.balls > 0 ? (bowler.runs / (bowler.balls / 6)).toFixed(2) : '0.00';
+      const strikerSr = striker.balls > 0 ? ((striker.runs / striker.balls) * 100).toFixed(1) : '0.0';
+
+      if (type === 'full_scorecard') {
+        if (lowerWrap) lowerWrap.classList.add('hidden');
+        if (fullCard && fullContent) {
+          const overSummaries = getOverSummaries(inn);
+          const recentOversHtml = overSummaries.slice(-8).map(ov => `
+            <div class="flex flex-col items-center bg-black/40 px-2.5 py-1.5 rounded-xl border border-white/10 min-w-[42px]">
+              <span class="text-[9px] font-mono text-gray-400 uppercase">Ov ${ov.overNumber}</span>
+              <span class="text-xs font-mono font-black ${ov.wickets > 0 ? 'text-rose-400' : 'text-amber-300'}">${ov.runs}${ov.wickets > 0 ? 'W' : ''}</span>
+            </div>
+          `).join('');
+
+          const battingRows = (inn.batters || []).filter(b => b.balls > 0 || b.out).map(b => {
+            const sr = b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(1) : '0.0';
+            return `
+              <tr class="border-b border-gray-800/60 font-mono text-xs">
+                <td class="py-1.5 font-bold text-white flex items-center gap-1.5">
+                  <span>${b.name}</span>
+                  <span class="text-[10px] text-gray-400 font-sans font-normal">${b.out ? `(${b.dismissal})` : '<span class="text-emerald-400 font-bold">*not out</span>'}</span>
+                </td>
+                <td class="py-1.5 text-center font-black text-amber-300">${b.runs}</td>
+                <td class="py-1.5 text-center text-gray-400">${b.balls}</td>
+                <td class="py-1.5 text-center text-gray-300">${b.fours}</td>
+                <td class="py-1.5 text-center text-purple-300">${b.sixes}</td>
+                <td class="py-1.5 text-right font-bold text-cyan-300">${sr}</td>
+              </tr>
+            `;
+          }).join('') || '<tr class="text-gray-500 text-xs"><td colspan="6" class="py-2 text-center">No batting data yet</td></tr>';
+
+          const bowlingRows = (inn.bowlers || []).filter(b => b.balls > 0).map(b => {
+            const bo = `${Math.floor(b.balls / 6)}.${b.balls % 6}`;
+            const econ = b.balls > 0 ? (b.runs / (b.balls / 6)).toFixed(2) : '0.00';
+            return `
+              <tr class="border-b border-gray-800/60 font-mono text-xs">
+                <td class="py-1.5 font-bold text-white">${b.name}</td>
+                <td class="py-1.5 text-center text-gray-300">${bo}</td>
+                <td class="py-1.5 text-center text-gray-400">${b.maidens || 0}</td>
+                <td class="py-1.5 text-center text-gray-300">${b.runs}</td>
+                <td class="py-1.5 text-center font-black text-rose-400">${b.wickets}</td>
+                <td class="py-1.5 text-right font-bold text-amber-300">${econ}</td>
+              </tr>
+            `;
+          }).join('') || '<tr class="text-gray-500 text-xs"><td colspan="6" class="py-2 text-center">No bowling data yet</td></tr>';
+
+          fullContent.innerHTML = `
+            <div class="flex items-center justify-between pb-3 border-b border-indigo-500/30">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-xl shadow-lg">🏏</div>
+                <div>
+                  <div class="text-xs uppercase font-bold tracking-widest text-indigo-300">${MATCH_DATA.meta.tournament || 'CRICKET MATCH'}</div>
+                  <h2 class="text-lg sm:text-2xl font-black text-white">${inn.batTeam.name} Innings</h2>
+                </div>
+              </div>
+              <div class="text-right">
+                <div class="text-2xl sm:text-3xl font-tv font-black text-amber-300">${inn.runs}/${inn.wickets}</div>
+                <div class="text-xs font-mono text-gray-400">OVERS: <span class="text-white font-bold">${oversText}</span> • CRR: <span class="text-emerald-400 font-bold">${crr}</span></div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- BATTING SUMMARY -->
+              <div class="bg-black/30 rounded-2xl p-3 border border-gray-800/80">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-2 flex items-center gap-1.5">
+                  <span>🏏</span> BATTING CARD
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left">
+                    <thead>
+                      <tr class="text-[10px] text-gray-500 border-b border-gray-800 pb-1 uppercase font-mono">
+                        <th class="py-1">Batter</th>
+                        <th class="py-1 text-center">R</th>
+                        <th class="py-1 text-center">B</th>
+                        <th class="py-1 text-center">4s</th>
+                        <th class="py-1 text-center">6s</th>
+                        <th class="py-1 text-right">SR</th>
+                      </tr>
+                    </thead>
+                    <tbody>${battingRows}</tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- BOWLING SUMMARY -->
+              <div class="bg-black/30 rounded-2xl p-3 border border-gray-800/80">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-cyan-400 mb-2 flex items-center gap-1.5">
+                  <span>🎯</span> BOWLING FIGURES
+                </div>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left">
+                    <thead>
+                      <tr class="text-[10px] text-gray-500 border-b border-gray-800 pb-1 uppercase font-mono">
+                        <th class="py-1">Bowler</th>
+                        <th class="py-1 text-center">O</th>
+                        <th class="py-1 text-center">M</th>
+                        <th class="py-1 text-center">R</th>
+                        <th class="py-1 text-center">W</th>
+                        <th class="py-1 text-right">ECON</th>
+                      </tr>
+                    </thead>
+                    <tbody>${bowlingRows}</tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- OVER-BY-OVER PROGRESSION -->
+            <div class="bg-black/40 rounded-2xl p-3 border border-gray-800/80 flex items-center justify-between gap-2 overflow-x-auto custom-scroll">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-amber-400 shrink-0 flex items-center gap-1">
+                <span>📊</span> <span>RECENT OVERS:</span>
+              </div>
+              <div class="flex items-center gap-2 overflow-x-auto">
+                ${recentOversHtml || '<span class="text-xs text-gray-500 italic">No overs completed yet</span>'}
+              </div>
+            </div>
+          `;
+
+          fullCard.classList.remove('hidden');
+          if (duration > 0) {
+            broadcastGraphicTimer = setTimeout(() => {
+              fullCard.classList.add('hidden');
+            }, duration);
+          }
+        }
+        return;
+      }
+
+      // Lower-third banners
+      if (fullCard) fullCard.classList.add('hidden');
+      if (!lowerWrap || !lowerContent) return;
+
+      if (type === 'partnership') {
+        const p = getCurrentPartnership(inn);
+        lowerContent.innerHTML = `
+          <div class="w-full bg-gradient-to-r from-[#0d1527]/95 via-[#131f38]/95 to-[#0d1527]/95 backdrop-blur-md border-2 border-indigo-500/50 rounded-2xl p-2.5 sm:p-3 shadow-2xl flex items-center justify-between gap-2 sm:gap-4 text-white font-sans animate-fade-in">
+            <div class="flex items-center gap-2 sm:gap-3">
+              <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-base shadow">🤝</div>
+              <div>
+                <div class="text-[9px] sm:text-[10px] uppercase font-bold text-indigo-300 tracking-wider">CURRENT PARTNERSHIP</div>
+                <div class="font-tv font-black text-lg sm:text-2xl text-amber-300 leading-tight">
+                  ${p.runs} <span class="text-xs sm:text-sm text-gray-300 font-normal">runs (${p.balls} balls)</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm font-bold border-l border-gray-700/80 pl-3 sm:pl-5">
+              <div class="text-right">
+                <div class="text-white text-xs sm:text-sm">${p.strikerName}</div>
+                <div class="text-emerald-400 font-mono font-black text-sm sm:text-base">${p.strikerRuns} <span class="text-[10px] text-gray-400 font-normal">(${p.strikerBalls})</span></div>
+              </div>
+              <div class="text-gray-500 text-lg font-thin">•</div>
+              <div class="text-left">
+                <div class="text-white text-xs sm:text-sm">${p.nonStrikerName}</div>
+                <div class="text-cyan-400 font-mono font-black text-sm sm:text-base">${p.nonStrikerRuns} <span class="text-[10px] text-gray-400 font-normal">(${p.nonStrikerBalls})</span></div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (type === 'batter') {
+        lowerContent.innerHTML = `
+          <div class="w-full bg-gradient-to-r from-[#0d1527]/95 via-[#15233c]/95 to-[#0d1527]/95 backdrop-blur-md border-2 border-emerald-500/50 rounded-2xl p-2.5 sm:p-3 shadow-2xl flex items-center justify-between gap-2 sm:gap-4 text-white font-sans animate-fade-in">
+            <div class="flex items-center gap-2 sm:gap-3">
+              <div class="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center text-base shadow">🏏</div>
+              <div>
+                <div class="text-[9px] sm:text-[10px] uppercase font-bold text-emerald-300 tracking-wider">BATSMAN SCORE & STRIKE RATE</div>
+                <div class="font-tv font-black text-lg sm:text-2xl text-white tracking-wide leading-tight">
+                  ${striker.name} <span class="text-emerald-400 text-sm sm:text-base">*</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3 font-mono font-bold text-xs sm:text-sm">
+              <div class="bg-black/50 px-3 py-1 rounded-xl border border-white/10 text-center">
+                <div class="text-[8px] sm:text-[9px] text-gray-400 uppercase font-sans">RUNS (BALLS)</div>
+                <div class="text-amber-300 font-black text-sm sm:text-base">${striker.runs} <span class="text-[11px] text-gray-300 font-normal">(${striker.balls})</span></div>
+              </div>
+              <div class="bg-black/50 px-3 py-1 rounded-xl border border-white/10 text-center">
+                <div class="text-[8px] sm:text-[9px] text-gray-400 uppercase font-sans">BOUNDARIES</div>
+                <div class="text-white font-black text-xs sm:text-sm">${striker.fours} <span class="text-[10px] text-emerald-400">4s</span> • ${striker.sixes} <span class="text-[10px] text-purple-400">6s</span></div>
+              </div>
+              <div class="bg-black/50 px-3 py-1 rounded-xl border border-white/10 text-center">
+                <div class="text-[8px] sm:text-[9px] text-gray-400 uppercase font-sans">STRIKE RATE</div>
+                <div class="text-cyan-300 font-black text-sm sm:text-base">${strikerSr}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (type === 'bowler') {
+        lowerContent.innerHTML = `
+          <div class="w-full bg-gradient-to-r from-[#0d1527]/95 via-[#15233c]/95 to-[#0d1527]/95 backdrop-blur-md border-2 border-cyan-500/50 rounded-2xl p-2.5 sm:p-3 shadow-2xl flex items-center justify-between gap-2 sm:gap-4 text-white font-sans animate-fade-in">
+            <div class="flex items-center gap-2 sm:gap-3">
+              <div class="w-8 h-8 rounded-xl bg-cyan-600 flex items-center justify-center text-base shadow">🎯</div>
+              <div>
+                <div class="text-[9px] sm:text-[10px] uppercase font-bold text-cyan-300 tracking-wider">BOWLER SPELL & FIGURES</div>
+                <div class="font-tv font-black text-lg sm:text-2xl text-white tracking-wide leading-tight">
+                  ${bowler.name}
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3 font-mono font-bold text-xs sm:text-sm">
+              <div class="bg-black/50 px-3 py-1 rounded-xl border border-white/10 text-center">
+                <div class="text-[8px] sm:text-[9px] text-gray-400 uppercase font-sans">O-M-R-W</div>
+                <div class="text-white font-black text-sm sm:text-base">${bowlerOvers}-${bowler.maidens || 0}-${bowler.runs}-<span class="text-rose-400">${bowler.wickets}</span></div>
+              </div>
+              <div class="bg-black/50 px-3 py-1 rounded-xl border border-white/10 text-center">
+                <div class="text-[8px] sm:text-[9px] text-gray-400 uppercase font-sans">ECONOMY</div>
+                <div class="text-amber-300 font-black text-sm sm:text-base">${bowlerEcon}</div>
+              </div>
+              <div class="bg-black/50 px-3 py-1 rounded-xl border border-white/10 text-center">
+                <div class="text-[8px] sm:text-[9px] text-gray-400 uppercase font-sans">DOT BALLS</div>
+                <div class="text-emerald-400 font-black text-sm sm:text-base">${bowler.dots || 0}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (type === 'manhattan') {
+        const oversList = getOverSummaries(inn);
+        const maxRunsInOver = Math.max(12, ...oversList.map(o => o.runs));
+        const barsHtml = oversList.map(ov => {
+          const barHeightPx = Math.max(14, Math.round((ov.runs / maxRunsInOver) * 56));
+          const isHigh = ov.runs >= 12;
+          const hasWicket = ov.wickets > 0;
+          return `
+            <div class="flex flex-col items-center gap-1 min-w-[32px] sm:min-w-[40px]">
+              <span class="text-[10px] font-mono font-black ${hasWicket ? 'text-rose-400' : (isHigh ? 'text-amber-300' : 'text-gray-300')}">
+                ${ov.runs}${hasWicket ? `<span class="text-[8px] text-rose-400">/${ov.wickets}W</span>` : ''}
+              </span>
+              <div class="w-5 sm:w-6 rounded-t-md transition-all duration-300 ${hasWicket ? 'bg-gradient-to-t from-rose-600 to-rose-400 shadow-rose-500/50' : (isHigh ? 'bg-gradient-to-t from-amber-500 to-yellow-300 shadow-amber-500/40' : 'bg-gradient-to-t from-blue-600 to-cyan-400')}" style="height: ${barHeightPx}px"></div>
+              <span class="text-[9px] font-mono text-gray-400 uppercase">Ov ${ov.overNumber}</span>
+            </div>
+          `;
+        }).join('') || '<div class="text-gray-400 text-xs italic py-4">No overs completed yet</div>';
+
+        lowerContent.innerHTML = `
+          <div class="w-full bg-gradient-to-r from-[#0b1222]/95 via-[#111d36]/95 to-[#0b1222]/95 backdrop-blur-md border-2 border-amber-500/50 rounded-2xl p-2.5 sm:p-3 shadow-2xl text-white font-sans animate-fade-in">
+            <div class="flex items-center justify-between pb-1.5 border-b border-gray-700/60 mb-1.5">
+              <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-lg bg-amber-500 text-black flex items-center justify-center text-xs font-black">📊</span>
+                <span class="font-black text-xs sm:text-sm tracking-wider uppercase text-amber-300">OVER-BY-OVER RUN ANALYSIS (MANHATTAN)</span>
+              </div>
+              <div class="text-xs font-mono text-gray-300">
+                CURRENT RUN RATE: <span class="text-emerald-400 font-black text-sm">${crr}</span>
+              </div>
+            </div>
+            <div class="flex items-end gap-2 h-20 sm:h-24 pt-1 overflow-x-auto custom-scroll">
+              ${barsHtml}
+            </div>
+          </div>
+        `;
+      }
+
+      lowerWrap.classList.remove('hidden');
+      if (duration > 0) {
+        broadcastGraphicTimer = setTimeout(() => {
+          lowerWrap.classList.add('hidden');
+        }, duration);
       }
     }
 

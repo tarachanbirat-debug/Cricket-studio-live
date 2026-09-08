@@ -9,7 +9,7 @@ jobs:
   build:
     name: Build Android APK
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout Code
@@ -38,13 +38,19 @@ jobs:
         run: |
           touch .env .env.example
           touch app/.env app/.env.example
-          keytool -genkey -v -keystore app/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" 2>/dev/null || true
+          
+          # Keystore root, app, aur system teeno jagah daal diya taaki kabhi fail na ho
+          mkdir -p ~/.android
+          keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US" 2>/dev/null || true
+          cp -f debug.keystore app/debug.keystore 2>/dev/null || true
+          cp -f debug.keystore ~/.android/debug.keystore 2>/dev/null || true
+          
           echo "android.builder.sdkDownload=true" >> gradle.properties
           echo "org.gradle.configuration-cache=false" >> gradle.properties
 
       - name: Build Debug APK
         run: |
-          gradle :app:assembleDebug --no-daemon --no-configuration-cache -x test -x lint -x check
+          gradle :app:assembleDebug --no-daemon --no-configuration-cache -x test -x lint -x check --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

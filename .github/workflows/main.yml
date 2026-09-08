@@ -2,34 +2,59 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
   workflow_dispatch:
 
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew || true
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-    - name: Build with Gradle
-      run: |
-        ./gradlew assembleDebug -x test -x lint -x lintVitalRelease -x check --continue --stacktrace || gradle assembleDebug -x test -x lint -x lintVitalRelease -x check --continue --stacktrace
+      - name: Accept Android Licenses
+        run: yes | sdkmanager --licenses || true
 
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: cricket-app-apk
-        path: app/build/outputs/apk/**/*.apk
-        
+      - name: Make Gradle executable
+        run: |
+          chmod +x ./gradlew
+
+      - name: Build Debug APK
+        run: |
+          ./gradlew :app:assembleDebug \
+            --no-daemon \
+            --stacktrace \
+            --info \
+            -x test \
+            -x lint
+
+      - name: Find APK
+        if: success()
+        run: |
+          echo "APK files:"
+          find . -type f -name "*.apk" -print
+
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cricket-Scorer-Debug-APK
+          path: |
+            app/build/outputs/apk/**/*.apk
+            **/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 14

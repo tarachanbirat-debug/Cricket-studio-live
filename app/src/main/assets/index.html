@@ -198,14 +198,18 @@
       </div>
     </div>
 
-    <!-- GRAND BROADCAST EVENT BANNER (SIX, FOUR, OUT - FULL WIDTH OVER SCORE STRIP) -->
-    <div id="overlayAlertWrapper" class="hidden w-full max-w-5xl mx-auto mb-2 pointer-events-none transition-all duration-300">
-      <div id="overlayAlertBadge" class="w-full py-3.5 sm:py-5 px-4 rounded-2xl text-white font-tv font-black text-2xl sm:text-4xl md:text-5xl text-center uppercase tracking-widest shadow-2xl border-4 border-white flex items-center justify-center gap-3">
-        💥 MAXIMUM SIX! 💥
+    <!-- TV BROADCAST SCORE STRIP & POPUP BADGE (INSPIRATION FROM LIVE INTERNATIONAL BROADCAST) -->
+    <div class="relative w-full max-w-5xl mx-auto flex flex-col items-center">
+      <!-- TV EVENT BADGE: POPS UP DIRECTLY ABOVE SCORE STRIP -->
+      <div id="overlayAlertWrapper" class="hidden w-full flex justify-center mb-2 pointer-events-none transition-all duration-300 z-50">
+        <div id="overlayAlertBadge" class="py-2 sm:py-2.5 px-6 sm:px-10 rounded-xl sm:rounded-2xl text-white font-tv font-black text-xl sm:text-3xl md:text-4xl uppercase tracking-widest shadow-2xl border-2 sm:border-4 border-white flex items-center justify-center gap-2 sm:gap-3 transform transition-all duration-300 animate-bounce">
+          💥 MAXIMUM SIX! 💥
+        </div>
       </div>
-    </div>
 
-    <div id="overlayDynamicStripContainer" class="w-full max-w-5xl mx-auto shadow-2xl"></div>
+      <!-- MAIN TV SCOREBOARD STRIP -->
+      <div id="overlayDynamicStripContainer" class="w-full shadow-2xl"></div>
+    </div>
   </div>
 
   <!-- MAIN APP CONTAINER -->
@@ -1387,9 +1391,10 @@
       };
     }
 
-    // Confetti & Fireworks Celebration Generator
-    function fireConfettiEffect(type = 'win') {
+    // Confetti & Fireworks Celebration Generator (Only on overlay stream, never over mobile keyboard)
+    function fireConfettiEffect(type = 'win', force = false) {
       if (typeof confetti !== 'function') return;
+      if (!isPrismOverlayMode && !force) return;
       if (type === 'six') {
         // Fireworks blast for SIX
         confetti({
@@ -1507,6 +1512,7 @@
       if (toast) showToast(`✅ Watermark: ${currentWatermarkText}`);
     }
 
+    let isFirstFirebaseSnapshot = true;
     let lastHandledAnimEventId = null;
 
     function checkAndListenToFirebaseMatch() {
@@ -1532,14 +1538,16 @@
             }
             updateMasterUI(false);
 
-            // Fresh Animation Event Only (e.g. Six, Four, Wicket) - never replay old animations
-            if (val.animEvent && val.animEvent.id && val.animEvent.id !== lastHandledAnimEventId) {
-              lastHandledAnimEventId = val.animEvent.id;
-              const age = Date.now() - (val.animEvent.timestamp || 0);
-              if (age >= 0 && age < 3500) {
+            // Fresh Animation Event (Six, Four, Wicket, Wide) - triggers immediately on overlay
+            if (val.animEvent && val.animEvent.id) {
+              if (isFirstFirebaseSnapshot) {
+                lastHandledAnimEventId = val.animEvent.id;
+              } else if (val.animEvent.id !== lastHandledAnimEventId) {
+                lastHandledAnimEventId = val.animEvent.id;
                 triggerBroadcastTestAlert(val.animEvent.text);
               }
             }
+            isFirstFirebaseSnapshot = false;
 
             if (val.broadcastGraphic) {
               if (val.broadcastGraphic.type === 'hide') {
@@ -1569,8 +1577,14 @@
 
     function getCleanOverlayUrl() {
       const matchId = getOrCreateMatchId();
-      // Official Live Hosted URL on GitHub Pages
-      const liveHost = 'https://tarachanbirat-debug.github.io/Cricket-studio-live';
+      let liveHost = localStorage.getItem('cric_custom_overlay_host');
+      if (!liveHost) {
+        if (window.location.origin && window.location.origin.includes('github.io')) {
+          liveHost = window.location.origin + window.location.pathname.replace(/\/$/, '');
+        } else {
+          liveHost = 'https://tarachanbirat-debug.github.io/Cricket-studio-live';
+        }
+      }
       return `${liveHost}/#overlay?theme=${activeStripTheme}&match=${matchId}`;
     }
 
@@ -2988,6 +3002,7 @@
       if (!text || !text.trim()) return;
       const wrap = document.getElementById('overlayAlertWrapper');
       const badge = document.getElementById('overlayAlertBadge');
+      const stripContainer = document.getElementById('overlayDynamicStripContainer');
       if (!wrap || !badge) return;
 
       // Hide lower-third graphic so alert doesn't awkwardly clash with it
@@ -2995,34 +3010,44 @@
       if (lowerWrap) lowerWrap.classList.add('hidden');
 
       const upper = (text || '').toUpperCase();
-      let baseClass = "w-full py-3.5 sm:py-5 px-4 rounded-2xl text-white font-tv font-black text-2xl sm:text-4xl md:text-5xl text-center uppercase tracking-widest shadow-2xl border-4 border-white flex items-center justify-center gap-3 transition-transform animate-bounce";
+      let baseClass = "py-2 sm:py-3 px-6 sm:px-10 rounded-xl sm:rounded-2xl text-white font-tv font-black text-xl sm:text-3xl md:text-4xl text-center uppercase tracking-widest shadow-2xl border-2 sm:border-4 border-white flex items-center justify-center gap-2 sm:gap-4 transition-transform";
 
       if (upper.includes('6') || upper.includes('SIX')) {
-        badge.className = baseClass + " bg-gradient-to-r from-purple-700 via-pink-600 to-indigo-700 ring-4 ring-purple-300";
-        badge.innerHTML = `<span class="text-3xl sm:text-5xl">💥</span> <span>MAXIMUM SIX!</span> <span class="text-3xl sm:text-5xl">💥</span>`;
+        badge.className = baseClass + " bg-gradient-to-r from-purple-800 via-pink-600 to-indigo-800 ring-4 ring-pink-400 border-yellow-300";
+        badge.innerHTML = `<span class="text-2xl sm:text-4xl animate-bounce">💥</span> <span>MAXIMUM SIX!</span> <span class="text-2xl sm:text-4xl animate-bounce">💥</span>`;
         fireConfettiEffect('six');
       } else if (upper.includes('OUT') || upper.includes('WICKET')) {
-        badge.className = baseClass + " bg-gradient-to-r from-red-700 via-rose-600 to-red-900 ring-4 ring-red-300";
-        badge.innerHTML = `<span class="text-3xl sm:text-5xl">☝️</span> <span>WICKET DOWN!</span> <span class="text-3xl sm:text-5xl">☝️</span>`;
+        badge.className = baseClass + " bg-gradient-to-r from-red-800 via-rose-600 to-red-950 ring-4 ring-red-400 border-yellow-300";
+        badge.innerHTML = `<span class="text-2xl sm:text-4xl animate-bounce">☝️</span> <span>WICKET DOWN!</span> <span class="text-2xl sm:text-4xl animate-bounce">☝️</span>`;
         fireConfettiEffect('wicket');
       } else if (upper.includes('4') || upper.includes('FOUR')) {
-        badge.className = baseClass + " bg-gradient-to-r from-blue-700 via-cyan-600 to-teal-600 ring-4 ring-cyan-300";
-        badge.innerHTML = `<span class="text-3xl sm:text-5xl">⚡</span> <span>CRACKING FOUR!</span> <span class="text-3xl sm:text-5xl">⚡</span>`;
+        badge.className = baseClass + " bg-gradient-to-r from-blue-700 via-cyan-500 to-teal-600 ring-4 ring-cyan-300 border-white";
+        badge.innerHTML = `<span class="text-2xl sm:text-4xl animate-bounce">⚡</span> <span>CRACKING FOUR!</span> <span class="text-2xl sm:text-4xl animate-bounce">⚡</span>`;
+        fireConfettiEffect('four');
+      } else if (upper.includes('WIDE') || upper.includes('WD')) {
+        badge.className = baseClass + " bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black ring-4 ring-yellow-300 border-white";
+        badge.innerHTML = `<span class="text-2xl sm:text-4xl animate-bounce">🚨</span> <span>WIDE BALL (+1)</span> <span class="text-2xl sm:text-4xl animate-bounce">🚨</span>`;
+        fireConfettiEffect('four');
+      } else if (upper.includes('NO BALL') || upper.includes('NB')) {
+        badge.className = baseClass + " bg-gradient-to-r from-orange-600 via-red-500 to-amber-600 text-white ring-4 ring-orange-300 border-white";
+        badge.innerHTML = `<span class="text-2xl sm:text-4xl animate-bounce">⚠️</span> <span>NO BALL! FREE HIT</span> <span class="text-2xl sm:text-4xl animate-bounce">⚠️</span>`;
         fireConfettiEffect('four');
       } else if (upper.includes('WON') || upper.includes('WIN')) {
-        badge.className = baseClass + " bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black ring-4 ring-yellow-200";
-        badge.innerHTML = `<span class="text-3xl sm:text-5xl">🏆</span> <span>${text}</span> <span class="text-3xl sm:text-5xl">🏆</span>`;
+        badge.className = baseClass + " bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black ring-4 ring-yellow-200 border-white";
+        badge.innerHTML = `<span class="text-2xl sm:text-4xl">🏆</span> <span>${text}</span> <span class="text-2xl sm:text-4xl">🏆</span>`;
         fireConfettiEffect('win');
       } else {
         badge.className = baseClass + " bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600";
         badge.innerHTML = `<span>${text}</span>`;
       }
 
+      // Pop TV alert badge directly above the scoreboard strip (scoreboard strip stays visible!)
       wrap.classList.remove('hidden');
+
       if (wrap._timer) clearTimeout(wrap._timer);
       wrap._timer = setTimeout(() => {
         wrap.classList.add('hidden');
-      }, 3500);
+      }, 2200); // 2.2 seconds TV broadcast duration
     }
 
     function switchTab(tabId) {

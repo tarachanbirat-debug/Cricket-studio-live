@@ -1,0 +1,6 @@
+{
+  "name": "Cric Score Sandeep",
+  "description": "Professional cricket broadcast scoring suite inspired by CricBest with Firebase Realtime Database sync, OBS and Prism Live transparent overlay support, ball-by-ball updates, and broadcast graphics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

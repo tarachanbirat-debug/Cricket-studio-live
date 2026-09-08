@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="hi" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Cricket Studio Pro - Broadcast Suite & Scorer</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&family=Oswald:wght@500;600;700&family=Rajdhani:wght@600;700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            tv: ['Rajdhani', 'sans-serif'],
+            score: ['Oswald', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    body {
+      background-color: #070a12;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* 100% TRANSPARENT PRISM / OBS OVERLAY ENGINE */
+    html.prism-overlay-mode,
+    body.prism-overlay-mode {
+      background: transparent !important;
+      background-color: transparent !important;
+      overflow: hidden !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    body.prism-overlay-mode .app-chrome-ui,
+    body.prism-overlay-mode #appViewportRoot {
+      display: none !important;
+    }
+    body.prism-overlay-mode #standaloneOverlayCanvas {
+      display: flex !important;
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 12px;
+      z-index: 99999;
+    }
+
+    .pb-mobile-safe {
+      padding-bottom: calc(env(safe-area-inset-bottom, 20px) + 140px) !important;
+    }
+
+    .btn-touch:active {
+      transform: scale(0.96);
+    }
+
+    /* TV Ball Circle Badges */
+    .tv-ball-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      border: 1.5px solid #2d3748;
+      background: #ffffff;
+      color: #0f172a;
+      flex-shrink: 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.35);
+    }
+    .tv-ball-four {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #1d4ed8;
+      box-shadow: 0 0 10px rgba(37,99,235,0.7);
+    }
+    .tv-ball-six {
+      background: #7c3aed;
+      color: #ffffff;
+      border-color: #6d28d9;
+      box-shadow: 0 0 10px rgba(124,58,237,0.7);
+    }
+    .tv-ball-wicket {
+      background: #dc2626;
+      color: #ffffff;
+      border-color: #b91c1c;
+      box-shadow: 0 0 10px rgba(220,38,38,0.85);
+    }
+    .tv-ball-extra {
+      background: #f59e0b;
+      color: #ffffff;
+      border-color: #d97706;
+      font-size: 10px;
+    }
+
+    @keyframes bannerSlide {
+      0% { transform: translateY(-80px) scale(0.85); opacity: 0; }
+      15% { transform: translateY(0) scale(1.05); opacity: 1; }
+      22% { transform: translateY(0) scale(1); opacity: 1; }
+      82% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-80px) scale(0.9); opacity: 0; }
+    }
+    .animate-broadcast-banner {
+      animation: bannerSlide 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #1c253b;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col bg-[#070a12] text-gray-100">
+
+  <!-- Toast Notification Alert -->
+  <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col space-y-2 pointer-events-none w-11/12 max-w-sm"></div>
+
+  <!-- STANDALONE PRISM / OBS TRANSPARENT OVERLAY CANVAS -->
+  <div id="standaloneOverlayCanvas" class="hidden">
+    <div id="overlayAlertWrapper" class="hidden self-center mb-4 animate-broadcast-banner pointer-events-none">
+      <div id="overlayAlertBadge" class="px-10 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-rose-600 text-white font-tv font-black text-3xl uppercase tracking-widest shadow-2xl border-2 border-white">
+        FOUR!
+      </div>
+    </div>
+    <div id="overlayDynamicStripContainer" class="w-full max-w-5xl mx-auto shadow-2xl"></div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="appViewportRoot" class="flex-1 flex flex-col w-full max-w-2xl mx-auto">
+
+    <!-- Top Navigation Header -->
+    <header class="app-chrome-ui sticky top-0 z-40 bg-[#0d1322]/95 backdrop-blur-md border-b border-gray-800 px-4 py-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-xl shadow-lg shadow-emerald-500/20 font-black text-black">
+            🏏
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-extrabold text-sm sm:text-base tracking-tight text-white leading-tight">CRICKET STUDIO PRO</h1>
+              <span id="appLivePill" class="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 animate-pulse">
+                LIVE
+              </span>
+            </div>
+            <div class="flex items-center gap-2 text-[11px] text-gray-400">
+              <span id="cloudStatusDot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span id="cloudStatusLabel">Broadcast Engine Active</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="switchTab('prism')" class="px-3 py-1.5 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 rounded-xl text-blue-300 text-xs font-bold flex items-center gap-1.5 btn-touch transition" title="Prism Overlay Link">
+            <span>🎥</span> <span class="hidden sm:inline">Prism Link</span>
+          </button>
+
+          <button onclick="toggleSoundFx()" id="audioBtn" class="w-9 h-9 flex items-center justify-center rounded-xl bg-gray-800 border border-gray-700 text-emerald-400 btn-touch" title="Sound On/Off">
+            <span id="audioIcon">🔊</span>
+          </button>
+
+          <button onclick="openNewMatchWizard()" class="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-bold btn-touch flex items-center gap-1" title="New Match">
+            <span>➕</span> <span class="hidden sm:inline">नया मैच</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- MAIN SCROLLABLE CONTENT -->
+    <main class="flex-1 p-4 pb-mobile-safe flex flex-col space-y-4">
+
+      <!-- ========================================================= -->
+      <!-- VIEW 1: AUTH / FAST START SCREEN                          -->
+      <!-- ========================================================= -->
+      <section id="viewAuth" class="space-y-4">
+        <div class="bg-[#121826] border border-gray-800 rounded-3xl p-6 shadow-2xl space-y-4 relative overflow-hidden">
+          <div class="text-center space-y-2">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/20">
+              ⚡
+            </div>
+            <h2 class="font-tv font-black text-2xl text-white tracking-wide">BROADCAST STUDIO</h2>
+            <p class="text-xs text-gray-400">Live Cricket Scoreboard & OBS / Prism Overlay</p>
+          </div>
+
+          <!-- 1-Click Instant Start -->
+          <button onclick="instantGuestLogin()" class="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white rounded-2xl font-black text-sm shadow-xl shadow-emerald-600/30 btn-touch transition flex items-center justify-center gap-2">
+            <span>🚀</span> <span>START SCORER & OVERLAY STUDIO</span>
+          </button>
+
+          <div class="p-3.5 bg-[#182032] border border-gray-700/60 rounded-2xl text-xs text-gray-300 space-y-2">
+            <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+              <span>✨</span> <span>Professional Live Features Included:</span>
+            </div>
+            <ul class="list-disc pl-4 space-y-1 text-gray-400">
+              <li>Ball-by-ball real-time scoring with instant undo</li>
+              <li>Prism Live Studio & OBS 100% transparent browser overlay</li>
+              <li>3 TV Broadcast Themes (IPL Purple, Stadium Navy, Classic Red)</li>
+              <li>Detailed Batting, Bowling & Partnership scorecard</li>
+              <li>Multi-device sync via Web BroadcastChannel & Cloud DB</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- VIEW 2: NEW MATCH SETUP WIZARD                            -->
+      <!-- ========================================================= -->
+      <section id="viewSetup" class="hidden space-y-4">
+        <div class="bg-[#121826] border border-gray-800 rounded-3xl p-5 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+            <div>
+              <span class="text-[11px] font-bold text-emerald-400 tracking-wider uppercase font-mono">Match Configuration</span>
+              <h2 class="text-lg font-black text-white">नया मैच सेट करें (Create Match)</h2>
+            </div>
+            <div class="px-3 py-1 rounded-xl bg-gray-800 border border-gray-700 text-xs font-mono font-bold text-gray-300">
+              Step <span id="setupStepIndicator" class="text-emerald-400">1</span>/4
+            </div>
+          </div>
+
+          <!-- STEP 1 -->
+          <div id="setupStep1" class="space-y-4 text-xs">
+            <div>
+              <label class="block font-semibold text-gray-300 mb-1">🏆 टूर्नामेंट / सीरीज़ का नाम</label>
+              <input id="inputTournament" type="text" value="Super Premier League" placeholder="उदा. Box Cricket Cup 2026" class="w-full bg-[#182032] border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-gray-300 mb-1">📍 मैदान / वेन्यू (Ground / Venue)</label>
+              <input id="inputVenue" type="text" value="City Arena Stadium" placeholder="उदा. City Turf Arena, Ground 1" class="w-full bg-[#182032] border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-gray-300 mb-1">⏱️ कुल ओवर्स (Total Overs)</label>
+                <input id="inputOvers" type="number" min="1" max="50" value="6" class="w-full bg-[#182032] border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+              </div>
+              <div>
+                <label class="block font-semibold text-gray-300 mb-1">🎯 बॉलर कोटा (Max / Bowler)</label>
+                <input id="inputMaxPerBowler" type="number" min="1" max="10" value="2" class="w-full bg-[#182032] border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-emerald-500">
+              </div>
+            </div>
+
+            <div class="pt-4 flex justify-end">
+              <button onclick="goToSetupStep(2)" class="w-full sm:w-auto px-7 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-sm shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 btn-touch transition">
+                <span>टीमें और खिलाड़ी जोड़ें</span> <span>&rarr;</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 2 -->
+          <div id="setupStep2" class="hidden space-y-4 text-xs">
+            <div class="bg-[#182032] border border-cyan-500/30 rounded-2xl p-4 space-y-3">
+              <div class="flex items-center gap-2 text-cyan-400 font-bold">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                <span>टीम 1 (Team A) की जानकारी</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <input id="inputTeamAName" type="text" value="Royal Tigers" placeholder="टीम का नाम (उदा. Royal Tigers)" class="col-span-2 bg-[#121826] border border-gray-700 rounded-xl px-3 py-2.5 text-white font-bold">
+                <input id="inputTeamACode" type="text" maxlength="4" value="RT" placeholder="Code (RT)" class="bg-[#121826] border border-gray-700 rounded-xl px-3 py-2.5 text-white font-mono uppercase text-center font-bold">
+              </div>
+              <div>
+                <label class="block text-gray-400 mb-1">खिलाड़ियों के नाम (हर लाइन में एक नाम):</label>
+                <textarea id="inputTeamAPlayers" rows="4" class="w-full bg-[#121826] border border-gray-700 rounded-xl p-3 text-white font-mono custom-scroll">Rohit Sharma
+Virat Kohli
+Suryakumar Yadav
+Hardik Pandya
+Jasprit Bumrah</textarea>
+              </div>
+            </div>
+
+            <div class="bg-[#182032] border border-amber-500/30 rounded-2xl p-4 space-y-3">
+              <div class="flex items-center gap-2 text-amber-400 font-bold">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                <span>टीम 2 (Team B) की जानकारी</span>
+              </div>
+              <div class="grid grid-cols-3 gap-2">
+                <input id="inputTeamBName" type="text" value="Super Warriors" placeholder="टीम का नाम (उदा. Super Warriors)" class="col-span-2 bg-[#121826] border border-gray-700 rounded-xl px-3 py-2.5 text-white font-bold">
+                <input id="inputTeamBCode" type="text" maxlength="4" value="SW" placeholder="Code (SW)" class="bg-[#121826] border border-gray-700 rounded-xl px-3 py-2.5 text-white font-mono uppercase text-center font-bold">
+              </div>
+              <div>
+                <label class="block text-gray-400 mb-1">खिलाड़ियों के नाम (हर लाइन में एक नाम):</label>
+                <textarea id="inputTeamBPlayers" rows="4" class="w-full bg-[#121826] border border-gray-700 rounded-xl p-3 text-white font-mono custom-scroll">David Warner
+Travis Head
+Mitchell Marsh
+Glenn Maxwell
+Pat Cummins</textarea>
+              </div>
+            </div>
+
+            <div class="pt-4 flex items-center justify-between">
+              <button onclick="goToSetupStep(1)" class="px-5 py-3 bg-gray-800 text-gray-300 rounded-xl font-semibold btn-touch">&larr; पीछे</button>
+              <button onclick="validateStep2AndProceed()" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/30 btn-touch">टॉस चुनें &rarr;</button>
+            </div>
+          </div>
+
+          <!-- STEP 3 -->
+          <div id="setupStep3" class="hidden space-y-4 text-xs">
+            <div class="space-y-3">
+              <div>
+                <label class="block font-semibold text-gray-300 mb-1">🪙 टॉस किसने जीता?</label>
+                <select id="selectTossWinner" onchange="updateTossSummaryUI()" class="w-full bg-[#182032] border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white font-bold"></select>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-gray-300 mb-1">🎯 टॉस जीतकर क्या फैसला लिया?</label>
+                <select id="selectTossDecision" onchange="updateTossSummaryUI()" class="w-full bg-[#182032] border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white font-bold">
+                  <option value="bat">पहले बैटिंग (Batting First)</option>
+                  <option value="bowl">पहले बॉलिंग (Bowling First)</option>
+                </select>
+              </div>
+
+              <div id="tossSummaryCard" class="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 leading-relaxed font-medium"></div>
+            </div>
+
+            <div class="pt-4 flex items-center justify-between">
+              <button onclick="goToSetupStep(2)" class="px-5 py-3 bg-gray-800 text-gray-300 rounded-xl font-semibold btn-touch">&larr; पीछे</button>
+              <button onclick="goToSetupStep(4)" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/30 btn-touch">ओपनर्स चुनें &rarr;</button>
+            </div>
+          </div>
+
+          <!-- STEP 4 -->
+          <div id="setupStep4" class="hidden space-y-4 text-xs">
+            <div class="space-y-3">
+              <div>
+                <label class="block font-semibold text-cyan-400 mb-1">🏏 स्ट्राइकर बल्लेबाज (*)</label>
+                <select id="selectStriker" class="w-full bg-[#182032] border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white font-bold"></select>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-gray-300 mb-1">🏃 नॉन-स्ट्राइकर बल्लेबाज</label>
+                <select id="selectNonStriker" class="w-full bg-[#182032] border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white font-bold"></select>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-emerald-400 mb-1">⚾ पहला ओवर फेंकने वाला गेंदबाज</label>
+                <select id="selectOpeningBowler" class="w-full bg-[#182032] border border-gray-700 rounded-2xl px-4 py-3 text-sm text-white font-bold"></select>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-gray-300 mb-1.5">🎨 ऑन-एयर ब्रॉडकास्ट टीवी थीम चुनें</label>
+                <div class="grid grid-cols-3 gap-2 text-xs">
+                  <label class="p-2.5 rounded-xl border border-purple-500 bg-purple-950/30 flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="radio" name="radioSetupTheme" value="purple_white" checked>
+                    <span class="font-bold text-purple-300 text-[11px]">Purple/White</span>
+                  </label>
+                  <label class="p-2.5 rounded-xl border border-blue-500/40 bg-blue-950/30 flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="radio" name="radioSetupTheme" value="stadium_blue">
+                    <span class="font-bold text-blue-300 text-[11px]">Stadium Navy</span>
+                  </label>
+                  <label class="p-2.5 rounded-xl border border-rose-500/40 bg-rose-950/30 flex flex-col items-center gap-1 cursor-pointer">
+                    <input type="radio" name="radioSetupTheme" value="classic_red">
+                    <span class="font-bold text-rose-300 text-[11px]">Classic Red</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="pt-4 flex items-center justify-between">
+              <button onclick="goToSetupStep(3)" class="px-5 py-3 bg-gray-800 text-gray-300 rounded-xl font-semibold btn-touch">&larr; पीछे</button>
+              <button onclick="launchMatchFromZero()" class="px-7 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 text-white rounded-2xl text-sm font-black shadow-xl shadow-emerald-600/30 btn-touch flex items-center gap-2">
+                <span>🚀</span> <span>मैच शुरू करें</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- VIEW 3: LIVE MATCH WORKSPACE                              -->
+      <!-- ========================================================= -->
+      <div id="liveMatchContainer" class="hidden space-y-4">
+
+        <!-- TV BROADCAST SCORE STRIP -->
+        <section id="tvScoreStripContainer" class="w-full">
+          <div id="tvMiniInfoHeader" class="flex items-center justify-between text-[11px] text-gray-400 px-1 mb-1.5 font-mono">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-red-600 text-white animate-pulse">LIVE</span>
+              <span id="bugTournament" class="text-gray-200 font-bold truncate max-w-[160px]">TOURNAMENT</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <div>CRR: <strong id="tvCRRText" class="text-emerald-400">0.00</strong></div>
+              <div id="tvTargetWrapper" class="hidden">REQ: <strong id="tvRRRText" class="text-cyan-400">0.00</strong> (T: <span id="tvTargetText" class="text-amber-300">0</span>)</div>
+              <button onclick="cycleStripTheme()" class="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-300 border border-gray-700 btn-touch">🎨 Theme</button>
+            </div>
+          </div>
+
+          <!-- THEME 1: Purple / White -->
+          <div id="tvThemePurpleWhite" class="w-full rounded-2xl overflow-hidden shadow-2xl border border-purple-900/40 bg-white text-gray-900 font-sans transition-all">
+            <div class="flex items-stretch">
+              <div class="hidden sm:flex items-center justify-center bg-white px-3 border-r border-gray-200 shrink-0">
+                <div class="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center text-white text-sm shadow">🏏</div>
+              </div>
+              <div class="flex-1 bg-white p-2 sm:p-2.5 flex flex-col justify-center border-r border-gray-200 min-w-0">
+                <div class="flex items-center justify-between py-0.5 text-xs">
+                  <div class="flex items-center gap-1 font-bold text-gray-900 truncate">
+                    <span class="text-emerald-600 text-[10px]">▶</span>
+                    <span id="pwStrikerName" class="truncate uppercase font-black text-xs">STRIKER</span>
+                  </div>
+                  <div class="font-mono font-bold text-gray-800 ml-1 shrink-0">
+                    <span id="pwStrikerRuns">0</span><span class="text-[10px] text-gray-500 font-normal">(<span id="pwStrikerBalls">0</span>)</span>
+                  </div>
+                </div>
+                <div class="flex items-center justify-between py-0.5 text-xs border-t border-gray-100">
+                  <span id="pwNonStrikerName" class="truncate uppercase font-bold text-[11px] text-gray-700 pl-2">NON-STRIKER</span>
+                  <div class="font-mono font-bold text-gray-800 ml-1 shrink-0">
+                    <span id="pwNonStrikerRuns">0</span><span class="text-[10px] text-gray-500 font-normal">(<span id="pwNonStrikerBalls">0</span>)</span>
+                  </div>
+                </div>
+              </div>
+              <div class="bg-[#24064d] text-white px-3 sm:px-4 py-2 flex flex-col items-center justify-center shrink-0">
+                <div class="flex items-center gap-1.5 font-mono">
+                  <span id="pwTeamACode" class="text-[11px] font-black text-purple-200">BAT</span>
+                  <span class="bg-[#ff007f] text-white px-2.5 py-0.5 rounded-full font-black text-sm sm:text-base shadow">
+                    <span id="pwRuns">0</span>/<span id="pwWickets">0</span>
+                  </span>
+                  <span class="text-[11px] text-purple-200">Ov <strong id="pwOvers" class="text-white">0.0</strong></span>
+                </div>
+                <div class="text-[9px] tracking-wider text-purple-200 mt-0.5 uppercase font-mono">
+                  P'SHIP: <strong id="pwPartnership" class="text-white">0</strong> (<span id="pwPartnershipBalls">0</span>b)
+                </div>
+              </div>
+              <div class="flex-1 bg-white p-2 sm:p-2.5 flex flex-col justify-center border-l border-gray-200 min-w-0">
+                <div class="flex items-center justify-between text-xs mb-1">
+                  <span id="pwBowlerName" class="font-black text-gray-900 uppercase text-xs truncate">BOWLER</span>
+                  <span class="font-mono text-gray-800 text-[11px] font-bold shrink-0">
+                    <span id="pwBowlerW">0</span>-<span id="pwBowlerR">0</span> (<span id="pwBowlerO">0.0</span>)
+                  </span>
+                </div>
+                <div id="pwRecentBalls" class="flex items-center gap-1 overflow-x-auto custom-scroll py-0.5">
+                  <span class="tv-ball-circle">•</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- THEME 2: Stadium Navy -->
+          <div id="tvThemeStadiumBlue" class="hidden w-full rounded-2xl overflow-hidden shadow-2xl border border-blue-500/40 bg-[#020d24] text-white font-sans transition-all">
+            <div class="flex items-stretch">
+              <div class="flex-1 bg-gradient-to-r from-[#031538] to-[#041d4f] p-2 sm:p-2.5 flex flex-col justify-center min-w-0">
+                <div class="flex items-center justify-between py-0.5 text-xs">
+                  <span id="sbStrikerName" class="truncate uppercase font-black text-xs text-white">STRIKER</span>
+                  <span class="font-mono font-bold text-cyan-300 ml-1 shrink-0"><span id="sbStrikerRuns">0</span> (<span id="sbStrikerBalls">0</span>)</span>
+                </div>
+                <div class="flex items-center justify-between py-0.5 text-xs border-t border-blue-900/40">
+                  <span id="sbNonStrikerName" class="truncate uppercase font-bold text-[11px] text-gray-300">NON-STRIKER</span>
+                  <span class="font-mono font-bold text-cyan-300 ml-1 shrink-0"><span id="sbNonStrikerRuns">0</span> (<span id="sbNonStrikerBalls">0</span>)</span>
+                </div>
+              </div>
+              <div class="bg-[#020b1f] border-x border-blue-700/50 px-3 sm:px-4 py-2 flex flex-col items-center justify-center shrink-0">
+                <div class="flex items-center gap-1.5 font-mono">
+                  <span id="sbTeamBCode" class="text-[11px] font-black text-white">BAT</span>
+                  <span class="bg-[#e11d48] text-white px-2.5 py-0.5 rounded-lg font-black text-sm sm:text-base">
+                    <span id="sbRuns">0</span>/<span id="sbWickets">0</span>
+                  </span>
+                  <span class="text-[11px] text-cyan-200">Ov <strong id="sbOvers" class="text-white">0.0</strong></span>
+                </div>
+                <div class="text-[9px] tracking-wider text-cyan-300 mt-0.5 uppercase font-mono">
+                  CRR: <strong id="sbCRR" class="text-white">0.00</strong> | P'SHIP: <strong id="sbPartnership" class="text-white">0</strong>
+                </div>
+              </div>
+              <div class="flex-1 bg-gradient-to-l from-[#031538] to-[#041d4f] p-2 sm:p-2.5 flex flex-col justify-center min-w-0">
+                <div class="flex items-center justify-between text-xs mb-1">
+                  <span id="sbBowlerName" class="font-black text-white uppercase text-xs truncate">BOWLER</span>
+                  <span class="font-mono text-cyan-300 text-[11px] font-bold shrink-0"><span id="sbBowlerW">0</span>-<span id="sbBowlerR">0</span> (<span id="sbBowlerO">0.0</span>)</span>
+                </div>
+                <div id="sbRecentBalls" class="flex items-center gap-1 overflow-x-auto custom-scroll py-0.5">
+                  <span class="tv-ball-circle">•</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- THEME 3: Classic Red -->
+          <div id="tvThemeClassicRed" class="hidden w-full rounded-2xl overflow-hidden shadow-2xl border border-red-800 bg-[#7f1d1d] text-white font-sans transition-all">
+            <div class="flex items-stretch">
+              <div class="flex-1 bg-[#991b1b] p-2 sm:p-2.5 flex flex-col justify-center min-w-0">
+                <div class="flex items-center justify-between py-0.5 text-xs">
+                  <span id="crStrikerName" class="truncate uppercase font-black text-xs text-white">STRIKER</span>
+                  <span class="font-mono font-bold text-amber-200 ml-1 shrink-0"><span id="crStrikerRuns">0</span> (<span id="crStrikerBalls">0</span>)</span>
+                </div>
+                <div class="flex items-center justify-between py-0.5 text-xs border-t border-red-800/80">
+                  <span id="crNonStrikerName" class="truncate uppercase font-bold text-[11px] text-red-100">NON-STRIKER</span>
+                  <span class="font-mono font-bold text-amber-200 ml-1 shrink-0"><span id="crNonStrikerRuns">0</span> (<span id="crNonStrikerBalls">0</span>)</span>
+                </div>
+              </div>
+              <div class="bg-gray-100 text-gray-900 px-3 sm:px-4 py-2 flex items-center justify-center gap-2 shrink-0">
+                <div class="bg-[#15803d] text-white px-2.5 py-0.5 rounded font-mono font-black text-sm sm:text-base">
+                  <span id="crRuns">0</span>/<span id="crWickets">0</span>
+                </div>
+                <div class="text-[11px] font-mono font-bold text-gray-800">
+                  OV <span id="crOvers">0.0</span>
+                </div>
+              </div>
+              <div class="flex-1 bg-[#a3e635] text-gray-900 p-2 sm:p-2.5 flex flex-col justify-center min-w-0">
+                <div class="flex items-center justify-between text-xs mb-0.5">
+                  <span id="crBowlerName" class="font-black uppercase text-xs truncate text-gray-950">BOWLER</span>
+                  <span class="font-mono text-[11px] font-bold text-gray-900 shrink-0"><span id="crBowlerW">0</span>-<span id="crBowlerR">0</span> (<span id="crBowlerO">0.0</span>)</span>
+                </div>
+                <div id="crRecentBalls" class="flex items-center gap-1 overflow-x-auto custom-scroll py-0.5">
+                  <span class="tv-ball-circle">•</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB: SCORER CONSOLE -->
+        <div id="tabScorer" class="space-y-4">
+          <div class="bg-[#121826] border border-gray-800 rounded-3xl p-4 shadow-xl space-y-3">
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="p-3 rounded-2xl bg-[#182032] border border-emerald-500/30 flex items-center justify-between">
+                <div>
+                  <div class="flex items-center gap-1 text-emerald-400 font-bold">
+                    <span>🏏</span> <span id="cardStrikerName" class="truncate font-black text-sm">--</span>
+                  </div>
+                  <div class="text-[10px] text-gray-400 mt-0.5">Striker</div>
+                </div>
+                <div class="text-right font-mono">
+                  <div class="font-black text-white text-base" id="cardStrikerRuns">0</div>
+                  <div class="text-[10px] text-gray-400">(<span id="cardStrikerBalls">0</span>b) 4s:<span id="cardStriker4s">0</span> 6s:<span id="cardStriker6s">0</span></div>
+                </div>
+              </div>
+
+              <div class="p-3 rounded-2xl bg-[#182032] border border-gray-700/60 flex items-center justify-between">
+                <div>
+                  <div class="text-gray-200 font-bold truncate text-sm" id="cardNonStrikerName">--</div>
+                  <div class="text-[10px] text-gray-400 mt-0.5">Non-Striker</div>
+                </div>
+                <div class="text-right font-mono">
+                  <div class="font-black text-white text-base" id="cardNonStrikerRuns">0</div>
+                  <div class="text-[10px] text-gray-400">(<span id="cardNonStrikerBalls">0</span>b) 4s:<span id="cardNonStriker4s">0</span> 6s:<span id="cardNonStriker6s">0</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Current Bowler -->
+            <div class="p-3 rounded-2xl bg-[#182032] border border-gray-700/60 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2">
+                <span class="w-8 h-8 rounded-xl bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center font-bold">⚾</span>
+                <div>
+                  <div class="font-black text-white text-sm" id="cardBowlerName">--</div>
+                  <div class="text-[10px] text-gray-400">Current Bowler (Rotational)</div>
+                </div>
+              </div>
+              <div class="font-mono text-right">
+                <div class="font-black text-cyan-300 text-sm">
+                  <span id="cardBowlerW">0</span> Wkts - <span id="cardBowlerR">0</span> Runs
+                </div>
+                <div class="text-[10px] text-gray-400">
+                  Ov: <span id="cardBowlerO">0.0</span> | Econ: <span id="cardBowlerEcon">0.00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tactile Scoring Keypad -->
+          <div class="bg-[#121826] border border-gray-800 rounded-3xl p-4 shadow-xl space-y-3">
+            <div class="grid grid-cols-4 gap-2.5">
+              <button onclick="recordBall(0)" class="h-14 rounded-2xl bg-[#1a2337] hover:bg-[#222e47] text-white font-mono font-black text-xl border border-gray-700 btn-touch flex flex-col items-center justify-center">
+                <span>0</span>
+                <span class="text-[9px] text-gray-400 font-normal">Dot</span>
+              </button>
+              <button onclick="recordBall(1)" class="h-14 rounded-2xl bg-[#1a2337] hover:bg-[#222e47] text-white font-mono font-black text-xl border border-gray-700 btn-touch flex flex-col items-center justify-center">
+                <span>1</span>
+                <span class="text-[9px] text-gray-400 font-normal">Single</span>
+              </button>
+              <button onclick="recordBall(2)" class="h-14 rounded-2xl bg-[#1a2337] hover:bg-[#222e47] text-white font-mono font-black text-xl border border-gray-700 btn-touch flex flex-col items-center justify-center">
+                <span>2</span>
+                <span class="text-[9px] text-gray-400 font-normal">Double</span>
+              </button>
+              <button onclick="recordBall(3)" class="h-14 rounded-2xl bg-[#1a2337] hover:bg-[#222e47] text-white font-mono font-black text-xl border border-gray-700 btn-touch flex flex-col items-center justify-center">
+                <span>3</span>
+                <span class="text-[9px] text-gray-400 font-normal">Three</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2.5">
+              <button onclick="recordBall(4)" class="h-14 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-mono font-black text-xl border border-blue-400/50 shadow-lg shadow-blue-600/30 btn-touch flex flex-col items-center justify-center">
+                <span>4</span>
+                <span class="text-[9px] text-blue-200 font-bold uppercase">FOUR</span>
+              </button>
+              <button onclick="recordBall(6)" class="h-14 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-mono font-black text-xl border border-purple-400/50 shadow-lg shadow-purple-600/30 btn-touch flex flex-col items-center justify-center">
+                <span>6</span>
+                <span class="text-[9px] text-purple-200 font-bold uppercase">SIX</span>
+              </button>
+              <!-- WICKET OUT BUTTON -->
+              <button onclick="openWicketDialog()" class="h-14 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-mono font-black text-xl border border-red-400/50 shadow-lg shadow-red-600/30 btn-touch flex flex-col items-center justify-center">
+                <span>W</span>
+                <span class="text-[9px] text-red-200 font-bold uppercase">OUT</span>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 text-xs">
+              <button onclick="recordExtraDelivery('wide')" class="py-3 rounded-xl bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 font-mono font-bold border border-amber-500/30 btn-touch text-center">
+                WD <span class="text-[10px] block text-amber-400/70">+1</span>
+              </button>
+              <button onclick="recordExtraDelivery('noball')" class="py-3 rounded-xl bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 font-mono font-bold border border-amber-500/30 btn-touch text-center">
+                NB <span class="text-[10px] block text-amber-400/70">+1</span>
+              </button>
+              <button onclick="recordExtraDelivery('bye')" class="py-3 rounded-xl bg-blue-950/30 hover:bg-blue-900/40 text-blue-300 font-mono font-bold border border-blue-500/30 btn-touch text-center">
+                BYE <span class="text-[10px] block text-blue-400/70">+1</span>
+              </button>
+              <button onclick="recordExtraDelivery('legbye')" class="py-3 rounded-xl bg-blue-950/30 hover:bg-blue-900/40 text-blue-300 font-mono font-bold border border-blue-500/30 btn-touch text-center">
+                LB <span class="text-[10px] block text-blue-400/70">+1</span>
+              </button>
+            </div>
+
+            <div class="pt-2 border-t border-gray-800 flex items-center justify-between gap-2">
+              <button onclick="rotateStrike()" class="flex-1 py-2.5 rounded-xl bg-[#182032] hover:bg-gray-800 text-xs font-semibold text-gray-200 border border-gray-700 btn-touch flex items-center justify-center gap-1.5">
+                <span>🔄</span> Strike
+              </button>
+              <button onclick="openChangeBowlerDialog(false)" class="flex-1 py-2.5 rounded-xl bg-[#182032] hover:bg-gray-800 text-xs font-semibold text-emerald-300 border border-gray-700 btn-touch flex items-center justify-center gap-1.5">
+                <span>⚾</span> Bowler
+              </button>
+              <button onclick="undoLastDelivery()" class="flex-1 py-2.5 rounded-xl bg-[#182032] hover:bg-gray-800 text-xs font-semibold text-rose-300 border border-gray-700 btn-touch flex items-center justify-center gap-1.5">
+                <span>↩</span> Undo
+              </button>
+            </div>
+          </div>
+
+          <!-- Commentary Feed -->
+          <div class="bg-[#121826] border border-gray-800 rounded-3xl p-4 shadow-xl">
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Live Commentary Feed
+              </h3>
+              <span id="feedCountTag" class="text-[10px] text-gray-400 font-mono">0 balls</span>
+            </div>
+            <div id="commentaryFeed" class="max-h-36 overflow-y-auto space-y-1.5 pr-1 custom-scroll text-xs">
+              <div class="p-3 text-center text-gray-400 italic bg-[#182032]/50 rounded-2xl">
+                मैच तैयार है। गेंद दर्ज करने के लिए ऊपर कीपैड का उपयोग करें!
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: SCORECARD -->
+        <div id="tabScorecard" class="hidden space-y-4">
+          <div class="bg-[#121826] border border-gray-800 rounded-3xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+              <div>
+                <h3 class="font-extrabold text-white text-base">ऑफिशियल मैच स्कोरकार्ड</h3>
+                <p class="text-xs text-gray-400" id="scorecardHeader">Tournament Match</p>
+              </div>
+              <button onclick="copyScorecardText()" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-xs font-bold text-gray-200 rounded-xl border border-gray-700 btn-touch">
+                📋 Copy
+              </button>
+            </div>
+
+            <div class="space-y-3">
+              <div class="flex items-center justify-between bg-[#182032] p-3 rounded-2xl">
+                <span class="font-bold text-sm text-cyan-300" id="sc1Team">Team A</span>
+                <span class="font-mono font-black text-white text-sm" id="sc1Score">0/0 (0.0 ov)</span>
+              </div>
+              <div class="overflow-x-auto custom-scroll">
+                <table class="w-full text-left text-xs font-mono">
+                  <thead>
+                    <tr class="text-gray-400 border-b border-gray-800 pb-1">
+                      <th class="py-1">Batsman</th>
+                      <th class="py-1 text-center">R</th>
+                      <th class="py-1 text-center">B</th>
+                      <th class="py-1 text-center">4s</th>
+                      <th class="py-1 text-center">6s</th>
+                      <th class="py-1 text-right">SR</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sc1BattingTbody" class="divide-y divide-gray-800/60"></tbody>
+                </table>
+              </div>
+              <div class="overflow-x-auto custom-scroll pt-2">
+                <table class="w-full text-left text-xs font-mono">
+                  <thead>
+                    <tr class="text-gray-400 border-b border-gray-800 pb-1">
+                      <th class="py-1">Bowler</th>
+                      <th class="py-1 text-center">O</th>
+                      <th class="py-1 text-center">M</th>
+                      <th class="py-1 text-center">R</th>
+                      <th class="py-1 text-center">W</th>
+                      <th class="py-1 text-right">Econ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sc1BowlingTbody" class="divide-y divide-gray-800/60"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="sc2CardWrap" class="hidden space-y-3 pt-4 border-t border-gray-800">
+              <div class="flex items-center justify-between bg-[#182032] p-3 rounded-2xl">
+                <span class="font-bold text-sm text-amber-300" id="sc2Team">Team B</span>
+                <span class="font-mono font-black text-white text-sm" id="sc2Score">0/0 (0.0 ov)</span>
+              </div>
+              <div class="overflow-x-auto custom-scroll">
+                <table class="w-full text-left text-xs font-mono">
+                  <tbody id="sc2BattingTbody" class="divide-y divide-gray-800/60"></tbody>
+                </table>
+              </div>
+              <div class="overflow-x-auto custom-scroll pt-2">
+                <table class="w-full text-left text-xs font-mono">
+                  <tbody id="sc2BowlingTbody" class="divide-y divide-gray-800/60"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: PRISM LIVE STUDIO HUB -->
+        <div id="tabPrism" class="hidden space-y-4">
+          <div class="bg-[#121826] border border-gray-800 rounded-3xl p-5 shadow-xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+              <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center text-base shadow-md">
+                  🎥
+                </div>
+                <div>
+                  <h3 class="font-black text-white text-sm tracking-tight">PRISM LIVE STUDIO OVERLAY</h3>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-[10px] text-emerald-400 font-mono font-bold tracking-wider uppercase">100% Transparent • Zero Watermark</span>
+                  </div>
+                </div>
+              </div>
+              
+              <button onclick="copyPrismOverlayLink()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold btn-touch transition shadow">
+                📋 Copy Link
+              </button>
+            </div>
+
+            <div class="space-y-1">
+              <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider">Prism Studio के लिए स्पेशल ट्रांसपेरेंट लिंक:</label>
+              <div class="bg-[#182032] border border-gray-700 rounded-2xl p-3 flex items-center gap-2">
+                <input id="prismUrlInput" readonly type="text" class="w-full bg-transparent border-none text-xs text-emerald-300 font-mono focus:outline-none select-all truncate">
+                <button onclick="copyPrismOverlayLink()" class="px-3 py-1.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-[11px] font-bold text-gray-200 border border-gray-700 shrink-0 btn-touch">
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            <div class="p-3 bg-[#182032]/60 rounded-2xl border border-gray-800 text-[11px] text-gray-300 space-y-1">
+              <span class="font-bold text-white uppercase text-[10px] text-emerald-400">Prism App में लगाने का तरीका:</span>
+              <p>1. Prism App खोलें &rarr; <strong>Widget</strong> &rarr; <strong>Web</strong> चुनें।</p>
+              <p>2. ऊपर दिया गया लिंक पेस्ट करें (Width: 1920, Height: 1080)।</p>
+              <p>3. कैमरा बैकग्राउंड अपने आप दिखेगा और नीचे टीवी स्कोर स्ट्रिप लाइव चलेगी!</p>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">टीवी ओवरले थीम बदलें</label>
+              <div class="grid grid-cols-3 gap-2 text-xs">
+                <button onclick="changeActiveTheme('purple_white')" id="themeBtn_purple_white" class="p-3 rounded-2xl border border-purple-500 bg-purple-950/30 text-left btn-touch transition">
+                  <div class="text-[9px] font-bold text-purple-300 uppercase">Style 1</div>
+                  <div class="font-extrabold text-white text-xs">Purple/White</div>
+                </button>
+                <button onclick="changeActiveTheme('stadium_blue')" id="themeBtn_stadium_blue" class="p-3 rounded-2xl border border-gray-800 bg-[#182032] text-left btn-touch transition">
+                  <div class="text-[9px] font-bold text-cyan-300 uppercase">Style 2</div>
+                  <div class="font-extrabold text-white text-xs">Stadium Navy</div>
+                </button>
+                <button onclick="changeActiveTheme('classic_red')" id="themeBtn_classic_red" class="p-3 rounded-2xl border border-gray-800 bg-[#182032] text-left btn-touch transition">
+                  <div class="text-[9px] font-bold text-rose-300 uppercase">Style 3</div>
+                  <div class="font-extrabold text-white text-xs">Classic Red</div>
+                </button>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-gray-800 grid grid-cols-4 gap-2">
+              <button onclick="triggerBroadcastTestAlert('FOUR!')" class="py-2.5 rounded-xl bg-blue-600/30 border border-blue-500/40 text-blue-300 font-bold text-[11px] btn-touch">Test 4</button>
+              <button onclick="triggerBroadcastTestAlert('SIX!')" class="py-2.5 rounded-xl bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold text-[11px] btn-touch">Test 6</button>
+              <button onclick="triggerBroadcastTestAlert('OUT!')" class="py-2.5 rounded-xl bg-red-600/30 border border-red-500/40 text-red-300 font-bold text-[11px] btn-touch">Test Out</button>
+              <button onclick="triggerBroadcastTestAlert('WIDE!')" class="py-2.5 rounded-xl bg-amber-600/30 border border-amber-500/40 text-amber-300 font-bold text-[11px] btn-touch">Test Wide</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- NATIVE BOTTOM NAVIGATION BAR -->
+    <nav class="app-chrome-ui fixed bottom-0 left-0 right-0 z-40 bg-[#0d1322]/95 backdrop-blur border-t border-gray-800 px-4 py-2">
+      <div class="max-w-md mx-auto grid grid-cols-3 gap-2 text-center">
+        <button id="navBtnScorer" onclick="switchTab('scorer')" class="flex flex-col items-center justify-center py-1.5 rounded-2xl bg-emerald-600 text-white btn-touch transition">
+          <span class="text-base">🏏</span>
+          <span class="text-[11px] font-bold mt-0.5">Scorer</span>
+        </button>
+        <button id="navBtnScorecard" onclick="switchTab('scorecard')" class="flex flex-col items-center justify-center py-1.5 rounded-2xl text-gray-400 hover:text-white btn-touch transition">
+          <span class="text-base">📊</span>
+          <span class="text-[11px] font-semibold mt-0.5">Scorecard</span>
+        </button>
+        <button id="navBtnPrism" onclick="switchTab('prism')" class="flex flex-col items-center justify-center py-1.5 rounded-2xl text-gray-400 hover:text-white btn-touch transition">
+          <span class="text-base">🎥</span>
+          <span class="text-[11px] font-semibold mt-0.5">Prism TV</span>
+        </button>
+      </div>
+    </nav>
+
+  </div>
+
+  <!-- MODALS -->
+  <div id="wicketModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#121826] border border-rose-500/40 rounded-3xl w-full max-w-sm p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-gray-800">
+        <h3 class="font-extrabold text-base text-rose-400 flex items-center gap-2"><span>🚨</span> आउट हुआ! (Wicket Out)</h3>
+        <button onclick="closeAppModal('wicketModal')" class="text-gray-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-300 mb-1">आउट का प्रकार</label>
+        <select id="selectWicketType" class="w-full bg-[#182032] border border-gray-700 rounded-xl px-3 py-2 text-xs text-white">
+          <option value="Bowled">Bowled</option>
+          <option value="Caught">Caught</option>
+          <option value="LBW">LBW</option>
+          <option value="Run Out">Run Out</option>
+          <option value="Stumped">Stumped</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-300 mb-1">कौन सा बल्लेबाज आउट हुआ?</label>
+        <div id="wicketBatterRadioContainer" class="grid grid-cols-2 gap-2 text-xs"></div>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-300 mb-1">नया बल्लेबाज (Next Batsman)</label>
+        <select id="selectNextBatter" class="w-full bg-[#182032] border border-gray-700 rounded-xl px-3 py-2 text-xs text-white"></select>
+      </div>
+      <div class="pt-2 flex items-center justify-end gap-2">
+        <button onclick="closeAppModal('wicketModal')" class="px-4 py-2 text-xs text-gray-400 font-semibold">रद्द करें</button>
+        <button onclick="confirmWicketDismissal()" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold btn-touch">विकेट दर्ज करें</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="bowlerModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#121826] border border-emerald-500/40 rounded-3xl w-full max-w-sm p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-gray-800">
+        <div>
+          <span id="bowlerModalSubtitle" class="text-[10px] text-emerald-400 font-mono font-bold uppercase">Over Change</span>
+          <h3 class="font-extrabold text-white text-base">अगला गेंदबाज चुनें (Rotational Bowling)</h3>
+        </div>
+        <button id="closeBowlerModalBtn" onclick="closeAppModal('bowlerModal')" class="text-gray-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <div id="bowlerModalList" class="space-y-2 max-h-56 overflow-y-auto custom-scroll pr-1"></div>
+      <div class="pt-2">
+        <button onclick="confirmBowlerChange()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-600/30 btn-touch">
+          गेंदबाज सेट करें
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="inningsModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#121826] border border-cyan-500/50 rounded-3xl w-full max-w-sm p-6 text-center shadow-2xl space-y-4">
+      <div class="w-14 h-14 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 mx-auto flex items-center justify-center text-2xl">🏁</div>
+      <h3 class="font-black text-lg text-white">पहली इनिंग्स समाप्त!</h3>
+      <p id="innBreakSummary" class="text-xs text-gray-300 leading-relaxed"></p>
+      <div class="text-left space-y-2 text-xs">
+        <div>
+          <label class="block text-gray-400 mb-1">2nd Innings Striker:</label>
+          <select id="selectInn2Striker" class="w-full bg-[#182032] border border-gray-700 rounded-xl p-2 text-white"></select>
+        </div>
+        <div>
+          <label class="block text-gray-400 mb-1">2nd Innings Non-Striker:</label>
+          <select id="selectInn2NonStriker" class="w-full bg-[#182032] border border-gray-700 rounded-xl p-2 text-white"></select>
+        </div>
+        <div>
+          <label class="block text-gray-400 mb-1">Opening Bowler:</label>
+          <select id="selectInn2Bowler" class="w-full bg-[#182032] border border-gray-700 rounded-xl p-2 text-white"></select>
+        </div>
+      </div>
+      <button onclick="startSecondInnings()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs rounded-xl btn-touch shadow-lg shadow-cyan-600/30">
+        दूसरी इनिंग्स शुरू करें 🚀
+      </button>
+    </div>
+  </div>
+
+  <div id="matchFinishModal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#121826] border border-amber-500/50 rounded-3xl w-full max-w-sm p-6 text-center shadow-2xl space-y-4">
+      <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 mx-auto flex items-center justify-center text-3xl">🏆</div>
+      <h3 class="font-black text-xl text-white" id="finishWinnerTitle">Match Finished</h3>
+      <p id="finishResultDetail" class="text-xs text-amber-300 font-semibold"></p>
+      <div class="pt-2 space-y-2">
+        <button onclick="closeAppModal('matchFinishModal'); switchTab('scorecard');" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl btn-touch">पूरा स्कोरकार्ड देखें</button>
+        <button onclick="openNewMatchWizard()" class="w-full py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 font-semibold text-xs rounded-xl btn-touch">नया मैच सेट करें</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <script>
+    let MATCH_DATA = {
+      meta: {
+        tournament: 'Super Premier League',
+        venue: 'City Arena Stadium',
+        totalOvers: 6,
+        maxPerBowler: 2,
+        theme: 'purple_white',
+        tossWinner: 'Royal Tigers',
+        tossDecision: 'bat',
+        started: false,
+        finished: false,
+        resultText: ''
+      },
+      teams: {
+        A: { name: 'Royal Tigers', code: 'RT', players: ['Rohit Sharma', 'Virat Kohli', 'Suryakumar Yadav', 'Hardik Pandya', 'Jasprit Bumrah'] },
+        B: { name: 'Super Warriors', code: 'SW', players: ['David Warner', 'Travis Head', 'Mitchell Marsh', 'Glenn Maxwell', 'Pat Cummins'] }
+      },
+      innings: 1,
+      inn1: null,
+      inn2: null
+    };
+
+    window.MATCH_DATA = MATCH_DATA;
+    let activeStripTheme = 'purple_white';
+    window.activeStripTheme = activeStripTheme;
+    let undoStack = [];
+    let audioOn = true;
+    let audioCtx = null;
+    let isPrismOverlayMode = false;
+
+    const syncChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel('cricscoresandeep_local_bus') : null;
+    if (syncChannel) {
+      syncChannel.onmessage = (e) => {
+        if (e.data && e.data.type === 'SYNC_MATCH') {
+          MATCH_DATA = e.data.payload;
+          window.MATCH_DATA = MATCH_DATA;
+          if (e.data.theme) {
+            activeStripTheme = e.data.theme;
+            window.activeStripTheme = activeStripTheme;
+            applyThemeUI(activeStripTheme);
+          }
+          updateMasterUI(false);
+        } else if (e.data && e.data.type === 'TRIGGER_ANIMATION') {
+          triggerBroadcastTestAlert(e.data.text);
+        }
+      };
+    }
+
+    function detectOverlayMode() {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      if (hash.includes('overlay') || search.includes('overlay=1')) {
+        isPrismOverlayMode = true;
+        document.documentElement.classList.add('prism-overlay-mode');
+        document.body.classList.add('prism-overlay-mode');
+      } else {
+        isPrismOverlayMode = false;
+        document.documentElement.classList.remove('prism-overlay-mode');
+        document.body.classList.remove('prism-overlay-mode');
+      }
+    }
+
+    function getCleanOverlayUrl() {
+      const base = window.location.href.split('#')[0].split('?')[0];
+      return `${base}#overlay?theme=${activeStripTheme}`;
+    }
+
+    function copyPrismOverlayLink() {
+      const link = getCleanOverlayUrl();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(() => {
+          showToast('✅ 100% Transparent Prism Link Copied!');
+        }).catch(() => fallbackCopy(link));
+      } else {
+        fallbackCopy(link);
+      }
+    }
+
+    function fallbackCopy(text) {
+      const inp = document.getElementById('prismUrlInput');
+      if (inp) {
+        inp.value = text;
+        inp.select();
+        document.execCommand('copy');
+        showToast('✅ Link Copied!');
+      }
+    }
+
+    function updateCloudBadge(isOnline, label) {
+      const dot = document.getElementById('cloudStatusDot');
+      const text = document.getElementById('cloudStatusLabel');
+      if (dot) dot.className = isOnline ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse' : 'w-2 h-2 rounded-full bg-amber-400';
+      if (text) text.textContent = label;
+    }
+
+    function instantGuestLogin() {
+      document.getElementById('viewAuth').classList.add('hidden');
+      if (MATCH_DATA.meta && MATCH_DATA.meta.started) {
+        document.getElementById('liveMatchContainer').classList.remove('hidden');
+        switchTab('scorer');
+      } else {
+        openNewMatchWizard();
+      }
+    }
+
+    function openNewMatchWizard() {
+      closeAppModal('matchFinishModal');
+      document.getElementById('liveMatchContainer').classList.add('hidden');
+      document.getElementById('viewAuth').classList.add('hidden');
+      document.getElementById('viewSetup').classList.remove('hidden');
+      goToSetupStep(1);
+    }
+
+    function goToSetupStep(stepNum) {
+      document.getElementById('setupStepIndicator').textContent = stepNum;
+      for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById(`setupStep${i}`);
+        if (el) el.classList.toggle('hidden', i !== stepNum);
+      }
+      if (stepNum === 3) populateTossDropdown();
+    }
+
+    function validateStep2AndProceed() {
+      const tAName = document.getElementById('inputTeamAName').value.trim();
+      const tACode = (document.getElementById('inputTeamACode').value.trim() || tAName.substring(0, 3) || 'TMA').toUpperCase();
+      const tAPlayers = document.getElementById('inputTeamAPlayers').value.split('\n').map(p => p.trim()).filter(Boolean);
+
+      const tBName = document.getElementById('inputTeamBName').value.trim();
+      const tBCode = (document.getElementById('inputTeamBCode').value.trim() || tBName.substring(0, 3) || 'TMB').toUpperCase();
+      const tBPlayers = document.getElementById('inputTeamBPlayers').value.split('\n').map(p => p.trim()).filter(Boolean);
+
+      if (!tAName || !tBName) {
+        showToast('⚠️ कृपया दोनों टीमों का नाम लिखें');
+        return;
+      }
+      if (tAPlayers.length < 2 || tBPlayers.length < 2) {
+        showToast('⚠️ दोनों टीमों में कम से कम 2 खिलाड़ी जोड़ें');
+        return;
+      }
+
+      MATCH_DATA.teams.A = { name: tAName, code: tACode, players: tAPlayers };
+      MATCH_DATA.teams.B = { name: tBName, code: tBCode, players: tBPlayers };
+      goToSetupStep(3);
+    }
+
+    function populateTossDropdown() {
+      const sel = document.getElementById('selectTossWinner');
+      sel.innerHTML = `
+        <option value="A">${MATCH_DATA.teams.A.name}</option>
+        <option value="B">${MATCH_DATA.teams.B.name}</option>
+      `;
+      updateTossSummaryUI();
+    }
+
+    function updateTossSummaryUI() {
+      const winnerKey = document.getElementById('selectTossWinner').value;
+      const decision = document.getElementById('selectTossDecision').value;
+
+      const winnerTeam = winnerKey === 'A' ? MATCH_DATA.teams.A : MATCH_DATA.teams.B;
+      const loserTeam = winnerKey === 'A' ? MATCH_DATA.teams.B : MATCH_DATA.teams.A;
+
+      const batTeam = decision === 'bat' ? winnerTeam : loserTeam;
+      const bowlTeam = decision === 'bat' ? loserTeam : winnerTeam;
+
+      document.getElementById('tossSummaryCard').innerHTML = `
+        🪙 <strong>${winnerTeam.name}</strong> ने टॉस जीतकर <strong>${decision === 'bat' ? 'बैटिंग' : 'बॉलिंग'}</strong> चुनी।<br>
+        <span class="text-white font-bold">${batTeam.name}</span> बैटिंग vs <span class="text-white font-bold">${bowlTeam.name}</span> बॉलिंग।
+      `;
+
+      const strikerSel = document.getElementById('selectStriker');
+      const nonStrikerSel = document.getElementById('selectNonStriker');
+      const bowlerSel = document.getElementById('selectOpeningBowler');
+
+      strikerSel.innerHTML = '';
+      nonStrikerSel.innerHTML = '';
+      bowlerSel.innerHTML = '';
+
+      batTeam.players.forEach((p, idx) => {
+        strikerSel.appendChild(new Option(p, idx, false, idx === 0));
+        nonStrikerSel.appendChild(new Option(p, idx, false, idx === 1));
+      });
+
+      bowlTeam.players.forEach((p, idx) => {
+        bowlerSel.appendChild(new Option(p, idx, false, idx === 0));
+      });
+    }
+
+    function launchMatchFromZero() {
+      MATCH_DATA.meta.tournament = document.getElementById('inputTournament').value.trim() || 'Tournament Match';
+      MATCH_DATA.meta.venue = document.getElementById('inputVenue').value.trim() || 'Ground 1';
+      MATCH_DATA.meta.totalOvers = Math.max(1, parseInt(document.getElementById('inputOvers').value) || 6);
+      MATCH_DATA.meta.maxPerBowler = Math.max(1, parseInt(document.getElementById('inputMaxPerBowler').value) || 2);
+
+      const winnerKey = document.getElementById('selectTossWinner').value;
+      const decision = document.getElementById('selectTossDecision').value;
+      MATCH_DATA.meta.tossWinner = winnerKey === 'A' ? MATCH_DATA.teams.A.name : MATCH_DATA.teams.B.name;
+      MATCH_DATA.meta.tossDecision = decision;
+
+      let batTeam = (winnerKey === 'A' && decision === 'bat') || (winnerKey === 'B' && decision === 'bowl')
+        ? MATCH_DATA.teams.A
+        : MATCH_DATA.teams.B;
+      let bowlTeam = batTeam === MATCH_DATA.teams.A ? MATCH_DATA.teams.B : MATCH_DATA.teams.A;
+
+      const sIdx = parseInt(document.getElementById('selectStriker').value) || 0;
+      const nsIdx = parseInt(document.getElementById('selectNonStriker').value) || 1;
+      const bIdx = parseInt(document.getElementById('selectOpeningBowler').value) || 0;
+
+      if (sIdx === nsIdx) {
+        showToast('⚠️ दोनों ओपनर्स अलग-अलग खिलाड़ी होने चाहिए');
+        return;
+      }
+
+      const chosenTheme = document.querySelector('input[name="radioSetupTheme"]:checked')?.value || 'purple_white';
+      changeActiveTheme(chosenTheme);
+
+      MATCH_DATA.innings = 1;
+      MATCH_DATA.inn1 = createInningsModel(batTeam, bowlTeam, sIdx, nsIdx, bIdx);
+      MATCH_DATA.inn2 = null;
+      MATCH_DATA.meta.started = true;
+      MATCH_DATA.meta.finished = false;
+
+      document.getElementById('viewSetup').classList.add('hidden');
+      document.getElementById('liveMatchContainer').classList.remove('hidden');
+
+      updateMasterUI();
+      switchTab('scorer');
+      showToast('🚀 मैच शुरू हो गया!');
+    }
+
+    function createInningsModel(batTeam, bowlTeam, sIdx, nsIdx, bIdx) {
+      return {
+        batTeam,
+        bowlTeam,
+        runs: 0,
+        wickets: 0,
+        overs: 0,
+        ballsInOver: 0,
+        extras: { wide: 0, noball: 0, bye: 0, legbye: 0 },
+        batters: (batTeam.players || []).map(p => ({
+          name: p,
+          runs: 0,
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+          out: false,
+          dismissal: ''
+        })),
+        bowlers: (bowlTeam.players || []).map(p => ({
+          name: p,
+          balls: 0,
+          runs: 0,
+          wickets: 0,
+          maidens: 0,
+          dots: 0
+        })),
+        strikerIndex: sIdx,
+        nonStrikerIndex: nsIdx,
+        currentBowlerIndex: bIdx,
+        previousBowlerIndex: -1,
+        awaitingNewBowler: false,
+        thisOverDeliveries: [],
+        history: []
+      };
+    }
+
+    function getCurrentInnings() {
+      if (!MATCH_DATA.inn1) {
+        MATCH_DATA.inn1 = createInningsModel(
+          MATCH_DATA.teams.A.name ? MATCH_DATA.teams.A : { name: 'Royal Tigers', code: 'RT', players: ['Rohit Sharma', 'Virat Kohli'] },
+          MATCH_DATA.teams.B.name ? MATCH_DATA.teams.B : { name: 'Super Warriors', code: 'SW', players: ['Pat Cummins', 'Mitchell Marsh'] },
+          0, 1, 0
+        );
+      }
+      return MATCH_DATA.innings === 1 ? MATCH_DATA.inn1 : (MATCH_DATA.inn2 || MATCH_DATA.inn1);
+    }
+
+    function saveSnapshot() {
+      if (undoStack.length > 30) undoStack.shift();
+      undoStack.push(JSON.parse(JSON.stringify(MATCH_DATA)));
+    }
+
+    function broadcastState(animText = null) {
+      try {
+        const payload = { data: MATCH_DATA, theme: activeStripTheme, time: Date.now() };
+        localStorage.setItem('cricket_studio_live_data', JSON.stringify(payload));
+        if (syncChannel) {
+          syncChannel.postMessage({ type: 'SYNC_MATCH', payload: MATCH_DATA, theme: activeStripTheme });
+          if (animText) {
+            syncChannel.postMessage({ type: 'TRIGGER_ANIMATION', text: animText });
+          }
+        }
+      } catch (e) {}
+    }
+
+    window.updateMasterUI = function(shouldBroadcast = true, animText = null) {
+      const inn = getCurrentInnings();
+      if (!inn) return;
+
+      const striker = inn.batters[inn.strikerIndex] || { name: '--', runs: 0, balls: 0, fours: 0, sixes: 0 };
+      const nonStriker = inn.batters[inn.nonStrikerIndex] || { name: '--', runs: 0, balls: 0, fours: 0, sixes: 0 };
+      const bowler = inn.bowlers[inn.currentBowlerIndex] || { name: '--', balls: 0, runs: 0, wickets: 0 };
+
+      const oversFloat = inn.overs + (inn.ballsInOver / 6);
+      const oversText = `${inn.overs}.${inn.ballsInOver}`;
+      const bowlerOversText = `${Math.floor(bowler.balls / 6)}.${bowler.balls % 6}`;
+      const crr = oversFloat > 0 ? (inn.runs / oversFloat).toFixed(2) : '0.00';
+
+      const tour = document.getElementById('bugTournament');
+      if (tour) tour.textContent = (MATCH_DATA.meta.tournament || 'CRICKET MATCH').toUpperCase();
+      const crrEl = document.getElementById('tvCRRText');
+      if (crrEl) crrEl.textContent = crr;
+
+      const targetWrap = document.getElementById('tvTargetWrapper');
+      if (targetWrap) {
+        if (MATCH_DATA.innings === 2 && inn.target) {
+          targetWrap.classList.remove('hidden');
+          document.getElementById('tvTargetText').textContent = inn.target;
+          const ballsLeft = Math.max(0, MATCH_DATA.meta.totalOvers * 6 - (inn.overs * 6 + inn.ballsInOver));
+          const runsLeft = inn.target - inn.runs;
+          const rrr = ballsLeft > 0 ? ((runsLeft / ballsLeft) * 6).toFixed(2) : '0.00';
+          document.getElementById('tvRRRText').textContent = rrr;
+        } else {
+          targetWrap.classList.add('hidden');
+        }
+      }
+
+      const pRuns = striker.runs + nonStriker.runs;
+      const pBalls = striker.balls + nonStriker.balls;
+
+      document.getElementById('cardStrikerName').textContent = striker.name;
+      document.getElementById('cardStrikerRuns').textContent = striker.runs;
+      document.getElementById('cardStrikerBalls').textContent = striker.balls;
+      document.getElementById('cardStriker4s').textContent = striker.fours;
+      document.getElementById('cardStriker6s').textContent = striker.sixes;
+
+      document.getElementById('cardNonStrikerName').textContent = nonStriker.name;
+      document.getElementById('cardNonStrikerRuns').textContent = nonStriker.runs;
+      document.getElementById('cardNonStrikerBalls').textContent = nonStriker.balls;
+      document.getElementById('cardNonStriker4s').textContent = nonStriker.fours;
+      document.getElementById('cardNonStriker6s').textContent = nonStriker.sixes;
+
+      document.getElementById('cardBowlerName').textContent = bowler.name;
+      document.getElementById('cardBowlerW').textContent = bowler.wickets;
+      document.getElementById('cardBowlerR').textContent = bowler.runs;
+      document.getElementById('cardBowlerO').textContent = bowlerOversText;
+      document.getElementById('cardBowlerEcon').textContent = bowler.balls > 0 ? (bowler.runs / (bowler.balls / 6)).toFixed(2) : '0.00';
+
+      ['pw', 'sb', 'cr'].forEach(prefix => {
+        const sName = document.getElementById(`${prefix}StrikerName`);
+        if (sName) {
+          sName.textContent = striker.name;
+          document.getElementById(`${prefix}StrikerRuns`).textContent = striker.runs;
+          document.getElementById(`${prefix}StrikerBalls`).textContent = striker.balls;
+          document.getElementById(`${prefix}NonStrikerName`).textContent = nonStriker.name;
+          document.getElementById(`${prefix}NonStrikerRuns`).textContent = nonStriker.runs;
+          document.getElementById(`${prefix}NonStrikerBalls`).textContent = nonStriker.balls;
+          
+          if (prefix === 'pw') {
+            document.getElementById('pwTeamACode').textContent = inn.batTeam.code || 'BAT';
+            document.getElementById('pwRuns').textContent = inn.runs;
+            document.getElementById('pwWickets').textContent = inn.wickets;
+            document.getElementById('pwOvers').textContent = oversText;
+            document.getElementById('pwPartnership').textContent = pRuns;
+            document.getElementById('pwPartnershipBalls').textContent = pBalls;
+          } else if (prefix === 'sb') {
+            document.getElementById('sbTeamBCode').textContent = inn.batTeam.code || 'BAT';
+            document.getElementById('sbRuns').textContent = inn.runs;
+            document.getElementById('sbWickets').textContent = inn.wickets;
+            document.getElementById('sbOvers').textContent = oversText;
+            document.getElementById('sbCRR').textContent = crr;
+            document.getElementById('sbPartnership').textContent = pRuns;
+          } else if (prefix === 'cr') {
+            document.getElementById('crRuns').textContent = inn.runs;
+            document.getElementById('crWickets').textContent = inn.wickets;
+            document.getElementById('crOvers').textContent = oversText;
+          }
+
+          document.getElementById(`${prefix}BowlerName`).textContent = bowler.name;
+          document.getElementById(`${prefix}BowlerW`).textContent = bowler.wickets;
+          document.getElementById(`${prefix}BowlerR`).textContent = bowler.runs;
+          document.getElementById(`${prefix}BowlerO`).textContent = bowlerOversText;
+          renderBallCircles(document.getElementById(`${prefix}RecentBalls`), inn.thisOverDeliveries);
+        }
+      });
+
+      syncStandaloneOverlay();
+      renderScorecardTables();
+
+      const prismInput = document.getElementById('prismUrlInput');
+      if (prismInput) prismInput.value = getCleanOverlayUrl();
+
+      if (animText) {
+        triggerBroadcastTestAlert(animText);
+      }
+
+      if (shouldBroadcast) broadcastState(animText);
+    };
+
+    function recordBall(runs) {
+      if (MATCH_DATA.meta.finished) {
+        showToast('मैच समाप्त हो चुका है!');
+        return;
+      }
+      const inn = getCurrentInnings();
+      if (inn.awaitingNewBowler) {
+        showToast('कृपया अगला ओवर फेंकने के लिए नया बॉलर चुनें!');
+        openChangeBowlerDialog(true);
+        return;
+      }
+
+      saveSnapshot();
+      const striker = inn.batters[inn.strikerIndex];
+      const bowler = inn.bowlers[inn.currentBowlerIndex];
+
+      striker.runs += runs;
+      striker.balls += 1;
+
+      let bannerText = null;
+      if (runs === 4) {
+        striker.fours += 1;
+        playAudioTone('four');
+        bannerText = 'FOUR!';
+      } else if (runs === 6) {
+        striker.sixes += 1;
+        playAudioTone('six');
+        bannerText = 'SIX!';
+      } else {
+        playAudioTone('bat');
+      }
+
+      bowler.runs += runs;
+      bowler.balls += 1;
+      if (runs === 0) bowler.dots += 1;
+
+      inn.runs += runs;
+      inn.ballsInOver += 1;
+
+      const ballLabel = runs === 0 ? '•' : runs.toString();
+      const delivery = {
+        label: ballLabel,
+        runs,
+        type: runs === 4 ? 'four' : (runs === 6 ? 'six' : 'normal'),
+        striker: striker.name,
+        bowler: bowler.name,
+        ballIndex: `${inn.overs}.${inn.ballsInOver}`
+      };
+      inn.thisOverDeliveries.push(delivery);
+      inn.history.push(delivery);
+
+      addCommentaryFeed(`${inn.overs}.${inn.ballsInOver}`, `${bowler.name} to ${striker.name}`, `${runs} रन बने`);
+
+      if (runs % 2 === 1) rotateStrikeInternal();
+
+      if (MATCH_DATA.innings === 2 && inn.runs >= inn.target) {
+        finishMatch(inn.batTeam.name, `${inn.batters.length - 1 - inn.wickets} विकेट से जीत`);
+        updateMasterUI(true, bannerText);
+        return;
+      }
+
+      checkOverCompletion();
+      updateMasterUI(true, bannerText);
+    }
+
+    function recordExtraDelivery(kind) {
+      if (MATCH_DATA.meta.finished) return;
+      const inn = getCurrentInnings();
+      if (inn.awaitingNewBowler) {
+        showToast('कृपया अगला ओवर फेंकने के लिए नया बॉलर चुनें!');
+        openChangeBowlerDialog(true);
+        return;
+      }
+
+      saveSnapshot();
+      const striker = inn.batters[inn.strikerIndex];
+      const bowler = inn.bowlers[inn.currentBowlerIndex];
+
+      let isLegal = false;
+      let label = kind.toUpperCase();
+      let bannerText = null;
+
+      if (kind === 'wide') {
+        inn.extras.wide += 1;
+        bowler.runs += 1;
+        inn.runs += 1;
+        label = 'WD';
+        bannerText = 'WIDE BALL!';
+        playAudioTone('extra');
+      } else if (kind === 'noball') {
+        inn.extras.noball += 1;
+        bowler.runs += 1;
+        inn.runs += 1;
+        label = 'NB';
+        bannerText = 'NO BALL!';
+        playAudioTone('extra');
+      } else if (kind === 'bye') {
+        inn.extras.bye += 1;
+        inn.runs += 1;
+        bowler.balls += 1;
+        striker.balls += 1;
+        isLegal = true;
+        label = '1B';
+        playAudioTone('bat');
+        rotateStrikeInternal();
+      } else if (kind === 'legbye') {
+        inn.extras.legbye += 1;
+        inn.runs += 1;
+        bowler.balls += 1;
+        striker.balls += 1;
+        isLegal = true;
+        label = '1LB';
+        playAudioTone('bat');
+        rotateStrikeInternal();
+      }
+
+      if (isLegal) inn.ballsInOver += 1;
+
+      const delivery = {
+        label,
+        runs: 1,
+        type: 'extra',
+        striker: striker.name,
+        bowler: bowler.name,
+        ballIndex: `${inn.overs}.${inn.ballsInOver}`
+      };
+      inn.thisOverDeliveries.push(delivery);
+      inn.history.push(delivery);
+
+      addCommentaryFeed(`${inn.overs}.${inn.ballsInOver}`, `Extra (${label})`, `${bowler.name} ने एक्स्ट्रा बॉल फेंकी`);
+
+      if (MATCH_DATA.innings === 2 && inn.runs >= inn.target) {
+        finishMatch(inn.batTeam.name, `${inn.batters.length - 1 - inn.wickets} विकेट से जीत`);
+        updateMasterUI(true, bannerText);
+        return;
+      }
+
+      if (isLegal) checkOverCompletion();
+      updateMasterUI(true, bannerText);
+    }
+
+    function checkOverCompletion() {
+      const inn = getCurrentInnings();
+      if (inn.ballsInOver >= 6) {
+        inn.overs += 1;
+        inn.ballsInOver = 0;
+        inn.thisOverDeliveries = [];
+        rotateStrikeInternal();
+
+        if (inn.overs >= MATCH_DATA.meta.totalOvers) {
+          handleInningsOver();
+          return;
+        }
+
+        inn.previousBowlerIndex = inn.currentBowlerIndex;
+        inn.awaitingNewBowler = true;
+        showToast(`ओवर ${inn.overs} समाप्त! अगला बॉलर चुनें।`);
+
+        setTimeout(() => {
+          openChangeBowlerDialog(true);
+        }, 300);
+      }
+    }
+
+    function openWicketDialog() {
+      const inn = getCurrentInnings();
+      const striker = inn.batters[inn.strikerIndex];
+      const nonStriker = inn.batters[inn.nonStrikerIndex];
+
+      const radioBox = document.getElementById('wicketBatterRadioContainer');
+      radioBox.innerHTML = `
+        <label class="p-2.5 rounded-xl bg-[#182032] border border-rose-500/40 flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="wicketBatterRadio" value="${inn.strikerIndex}" checked class="text-rose-500">
+          <span class="font-bold text-white truncate text-xs">${striker.name} (स्ट्राइकर)</span>
+        </label>
+        <label class="p-2.5 rounded-xl bg-[#182032] border border-gray-700 flex items-center gap-2 cursor-pointer">
+          <input type="radio" name="wicketBatterRadio" value="${inn.nonStrikerIndex}" class="text-rose-500">
+          <span class="font-bold text-white truncate text-xs">${nonStriker.name} (नॉन-स्ट्राइकर)</span>
+        </label>
+      `;
+
+      const nextSel = document.getElementById('selectNextBatter');
+      nextSel.innerHTML = '';
+      let remainingBatters = 0;
+
+      inn.batters.forEach((b, idx) => {
+        if (!b.out && idx !== inn.strikerIndex && idx !== inn.nonStrikerIndex) {
+          nextSel.appendChild(new Option(b.name, idx));
+          remainingBatters++;
+        }
+      });
+
+      if (remainingBatters === 0) {
+        nextSel.appendChild(new Option('(All Out / अंतिम विकेट)', -1));
+      }
+
+      openAppModal('wicketModal');
+    }
+
+    function confirmWicketDismissal() {
+      saveSnapshot();
+      const inn = getCurrentInnings();
+      const outIdx = parseInt(document.querySelector('input[name="wicketBatterRadio"]:checked').value);
+      const nextIdx = parseInt(document.getElementById('selectNextBatter').value);
+      const disType = document.getElementById('selectWicketType').value;
+
+      const outBatter = inn.batters[outIdx];
+      const bowler = inn.bowlers[inn.currentBowlerIndex];
+
+      outBatter.out = true;
+      outBatter.dismissal = `${disType} b ${bowler.name}`;
+      outBatter.balls += 1;
+
+      inn.wickets += 1;
+      bowler.balls += 1;
+      if (disType !== 'Run Out') bowler.wickets += 1;
+      inn.ballsInOver += 1;
+
+      if (nextIdx >= 0) {
+        if (outIdx === inn.strikerIndex) {
+          inn.strikerIndex = nextIdx;
+        } else {
+          inn.nonStrikerIndex = nextIdx;
+        }
+      }
+
+      const delivery = {
+        label: 'W',
+        runs: 0,
+        type: 'wicket',
+        striker: outBatter.name,
+        bowler: bowler.name,
+        ballIndex: `${inn.overs}.${inn.ballsInOver}`
+      };
+      inn.thisOverDeliveries.push(delivery);
+      inn.history.push(delivery);
+
+      playAudioTone('wicket');
+      addCommentaryFeed(`${inn.overs}.${inn.ballsInOver}`, 'WICKET!', `${outBatter.name} आउट (${disType})`);
+      closeAppModal('wicketModal');
+
+      if (inn.wickets >= inn.batters.length - 1) {
+        showToast('टीम ऑल आउट!');
+        handleInningsOver();
+      } else {
+        checkOverCompletion();
+      }
+
+      updateMasterUI(true, 'WICKET!');
+    }
+
+    function openChangeBowlerDialog(isMandatory = false) {
+      const inn = getCurrentInnings();
+      const listContainer = document.getElementById('bowlerModalList');
+      const closeBtn = document.getElementById('closeBowlerModalBtn');
+      const subtitle = document.getElementById('bowlerModalSubtitle');
+
+      if (isMandatory) {
+        closeBtn.classList.add('hidden');
+        subtitle.textContent = `OVER ${inn.overs} COMPLETE - NEW BOWLER`;
+      } else {
+        closeBtn.classList.remove('hidden');
+        subtitle.textContent = 'CHANGE BOWLER';
+      }
+
+      listContainer.innerHTML = '';
+      let defaultPick = -1;
+
+      inn.bowlers.forEach((b, idx) => {
+        const completedOvers = Math.floor(b.balls / 6);
+        const ballsRem = b.balls % 6;
+        const isQuotaMax = completedOvers >= MATCH_DATA.meta.maxPerBowler;
+        const isConsecutive = isMandatory && (idx === inn.previousBowlerIndex);
+        const isBlocked = isQuotaMax || isConsecutive;
+
+        if (!isBlocked && defaultPick === -1) defaultPick = idx;
+
+        const label = document.createElement('label');
+        label.className = `flex items-center justify-between p-3 rounded-2xl border transition ${
+          isBlocked ? 'bg-gray-800/40 border-gray-800 text-gray-500 opacity-60' : 'bg-[#182032] border-gray-700 text-white cursor-pointer hover:border-emerald-500'
+        }`;
+
+        label.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <input type="radio" name="bowlerChoiceRadio" value="${idx}" ${isBlocked ? 'disabled' : ''} ${idx === defaultPick ? 'checked' : ''} class="text-emerald-500">
+            <div>
+              <div class="font-bold text-xs">${b.name}</div>
+              <div class="text-[10px] text-gray-400 font-mono">${b.wickets} w, ${b.runs} r</div>
+            </div>
+          </div>
+          <div class="text-[10px] font-mono text-emerald-400">${completedOvers}.${ballsRem}/${MATCH_DATA.meta.maxPerBowler} ov</div>
+        `;
+        listContainer.appendChild(label);
+      });
+
+      openAppModal('bowlerModal');
+    }
+
+    function confirmBowlerChange() {
+      const selected = document.querySelector('input[name="bowlerChoiceRadio"]:checked');
+      if (!selected) {
+        showToast('कृपया बॉलर चुनें!');
+        return;
+      }
+      const inn = getCurrentInnings();
+      inn.currentBowlerIndex = parseInt(selected.value);
+      inn.awaitingNewBowler = false;
+      closeAppModal('bowlerModal');
+      updateMasterUI();
+      showToast(`अब अगला ओवर फेंकेंगे: ${inn.bowlers[inn.currentBowlerIndex].name}`);
+    }
+
+    function rotateStrike() {
+      rotateStrikeInternal();
+      updateMasterUI();
+      showToast('स्ट्राइक बदल दी गई');
+    }
+
+    function rotateStrikeInternal() {
+      const inn = getCurrentInnings();
+      const tmp = inn.strikerIndex;
+      inn.strikerIndex = inn.nonStrikerIndex;
+      inn.nonStrikerIndex = tmp;
+    }
+
+    function undoLastDelivery() {
+      if (undoStack.length === 0) {
+        showToast('Undo करने के लिए कुछ नहीं है!');
+        return;
+      }
+      MATCH_DATA = undoStack.pop();
+      window.MATCH_DATA = MATCH_DATA;
+      updateMasterUI();
+      showToast('पिछली गेंद Undo कर दी गई');
+    }
+
+    function handleInningsOver() {
+      if (MATCH_DATA.innings === 1) {
+        const inn1 = MATCH_DATA.inn1;
+        const target = inn1.runs + 1;
+        document.getElementById('innBreakSummary').innerHTML = `
+          <strong>${inn1.batTeam.name}</strong> ने ${inn1.overs}.${inn1.ballsInOver} ओवर में <strong>${inn1.runs}/${inn1.wickets}</strong> रन बनाए。<br>
+          <span class="text-cyan-400 font-bold">${inn1.bowlTeam.name}</span> को जीत के लिए <strong>${target} रन</strong> चाहिए।
+        `;
+
+        const sSel = document.getElementById('selectInn2Striker');
+        const nsSel = document.getElementById('selectInn2NonStriker');
+        const bSel = document.getElementById('selectInn2Bowler');
+        sSel.innerHTML = '';
+        nsSel.innerHTML = '';
+        bSel.innerHTML = '';
+
+        inn1.bowlTeam.players.forEach((p, idx) => {
+          sSel.appendChild(new Option(p, idx, false, idx === 0));
+          nsSel.appendChild(new Option(p, idx, false, idx === 1));
+        });
+
+        inn1.batTeam.players.forEach((p, idx) => {
+          bSel.appendChild(new Option(p, idx, false, idx === 0));
+        });
+
+        openAppModal('inningsModal');
+      } else {
+        evaluateMatchResult();
+      }
+    }
+
+    function startSecondInnings() {
+      const inn1 = MATCH_DATA.inn1;
+      const sIdx = parseInt(document.getElementById('selectInn2Striker').value);
+      const nsIdx = parseInt(document.getElementById('selectInn2NonStriker').value);
+      const bIdx = parseInt(document.getElementById('selectInn2Bowler').value);
+
+      if (sIdx === nsIdx) {
+        showToast('दोनों ओपनर्स अलग-अलग होने चाहिए!');
+        return;
+      }
+
+      MATCH_DATA.inn2 = createInningsModel(inn1.bowlTeam, inn1.batTeam, sIdx, nsIdx, bIdx);
+      MATCH_DATA.inn2.target = inn1.runs + 1;
+      MATCH_DATA.innings = 2;
+
+      closeAppModal('inningsModal');
+      updateMasterUI();
+      showToast(`2nd Innings शुरू! Target: ${MATCH_DATA.inn2.target}`);
+    }
+
+    function evaluateMatchResult() {
+      const inn1 = MATCH_DATA.inn1;
+      const inn2 = MATCH_DATA.inn2;
+      if (!inn2) return;
+
+      if (inn2.runs >= inn2.target) {
+        const wkts = inn2.batters.length - 1 - inn2.wickets;
+        finishMatch(inn2.batTeam.name, `${Math.max(1, wkts)} विकेट से जीत`);
+      } else if (inn2.runs === inn1.runs) {
+        finishMatch('Match Tied', 'मैच बराबरी पर समाप्त हुआ');
+      } else {
+        finishMatch(inn1.batTeam.name, `${inn1.runs - inn2.runs} रन से जीत`);
+      }
+    }
+
+    function finishMatch(winner, margin) {
+      MATCH_DATA.meta.finished = true;
+      MATCH_DATA.meta.resultText = `${winner} won (${margin})`;
+      document.getElementById('finishWinnerTitle').textContent = winner;
+      document.getElementById('finishResultDetail').textContent = margin;
+      openAppModal('matchFinishModal');
+    }
+
+    function renderBallCircles(container, deliveries) {
+      if (!container) return;
+      container.innerHTML = '';
+      if (!deliveries || deliveries.length === 0) {
+        container.innerHTML = '<span class="tv-ball-circle">•</span>';
+        return;
+      }
+      deliveries.forEach(del => {
+        const span = document.createElement('span');
+        let cls = 'tv-ball-circle';
+        if (del.type === 'four') cls += ' tv-ball-four';
+        else if (del.type === 'six') cls += ' tv-ball-six';
+        else if (del.type === 'wicket') cls += ' tv-ball-wicket';
+        else if (del.type === 'extra') cls += ' tv-ball-extra';
+        span.className = cls;
+        span.textContent = del.label;
+        container.appendChild(span);
+      });
+    }
+
+    function syncStandaloneOverlay() {
+      const activeId = activeStripTheme === 'purple_white' 
+        ? 'tvThemePurpleWhite' 
+        : (activeStripTheme === 'stadium_blue' ? 'tvThemeStadiumBlue' : 'tvThemeClassicRed');
+
+      const src = document.getElementById(activeId);
+      const target = document.getElementById('overlayDynamicStripContainer');
+      if (src && target) {
+        target.innerHTML = src.outerHTML;
+        const first = target.firstElementChild;
+        if (first) first.classList.remove('hidden');
+      }
+    }
+
+    function renderScorecardTables() {
+      document.getElementById('scorecardHeader').textContent = `${MATCH_DATA.meta.tournament || 'Match'} • ${MATCH_DATA.meta.venue || 'Ground'}`;
+
+      if (MATCH_DATA.inn1) {
+        const inn1 = MATCH_DATA.inn1;
+        document.getElementById('sc1Team').textContent = inn1.batTeam.name;
+        document.getElementById('sc1Score').textContent = `${inn1.runs}/${inn1.wickets} (${inn1.overs}.${inn1.ballsInOver} ov)`;
+
+        const batTb = document.getElementById('sc1BattingTbody');
+        batTb.innerHTML = '';
+        inn1.batters.forEach(b => {
+          if (b.balls > 0 || b.out) {
+            const tr = document.createElement('tr');
+            const sr = b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(1) : '0.0';
+            tr.innerHTML = `
+              <td class="py-1.5 font-bold text-white">${b.name} <span class="text-[10px] text-gray-500 font-normal">(${b.out ? b.dismissal : 'not out'})</span></td>
+              <td class="py-1.5 text-center font-bold text-white">${b.runs}</td>
+              <td class="py-1.5 text-center text-gray-400">${b.balls}</td>
+              <td class="py-1.5 text-center text-blue-400">${b.fours}</td>
+              <td class="py-1.5 text-center text-purple-400">${b.sixes}</td>
+              <td class="py-1.5 text-right text-gray-300">${sr}</td>
+            `;
+            batTb.appendChild(tr);
+          }
+        });
+
+        const bowlTb = document.getElementById('sc1BowlingTbody');
+        bowlTb.innerHTML = '';
+        inn1.bowlers.forEach(b => {
+          if (b.balls > 0) {
+            const tr = document.createElement('tr');
+            const o = `${Math.floor(b.balls / 6)}.${b.balls % 6}`;
+            const econ = b.balls > 0 ? (b.runs / (b.balls / 6)).toFixed(2) : '0.00';
+            tr.innerHTML = `
+              <td class="py-1.5 font-bold text-white">${b.name}</td>
+              <td class="py-1.5 text-center">${o}</td>
+              <td class="py-1.5 text-center">${b.maidens}</td>
+              <td class="py-1.5 text-center font-bold text-white">${b.runs}</td>
+              <td class="py-1.5 text-center font-bold text-emerald-400">${b.wickets}</td>
+              <td class="py-1.5 text-right text-gray-300">${econ}</td>
+            `;
+            bowlTb.appendChild(tr);
+          }
+        });
+      }
+
+      if (MATCH_DATA.inn2) {
+        document.getElementById('sc2CardWrap').classList.remove('hidden');
+        const inn2 = MATCH_DATA.inn2;
+        document.getElementById('sc2Team').textContent = inn2.batTeam.name;
+        document.getElementById('sc2Score').textContent = `${inn2.runs}/${inn2.wickets} (${inn2.overs}.${inn2.ballsInOver} ov)`;
+
+        const batTb2 = document.getElementById('sc2BattingTbody');
+        batTb2.innerHTML = '';
+        inn2.batters.forEach(b => {
+          if (b.balls > 0 || b.out) {
+            const tr = document.createElement('tr');
+            const sr = b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(1) : '0.0';
+            tr.innerHTML = `
+              <td class="py-1.5 font-bold text-white">${b.name}</td>
+              <td class="py-1.5 text-center font-bold text-white">${b.runs}</td>
+              <td class="py-1.5 text-center text-gray-400">${b.balls}</td>
+              <td class="py-1.5 text-center text-blue-400">${b.fours}</td>
+              <td class="py-1.5 text-center text-purple-400">${b.sixes}</td>
+              <td class="py-1.5 text-right text-gray-300">${sr}</td>
+            `;
+            batTb2.appendChild(tr);
+          }
+        });
+
+        const bowlTb2 = document.getElementById('sc2BowlingTbody');
+        bowlTb2.innerHTML = '';
+        inn2.bowlers.forEach(b => {
+          if (b.balls > 0) {
+            const tr = document.createElement('tr');
+            const o = `${Math.floor(b.balls / 6)}.${b.balls % 6}`;
+            const econ = b.balls > 0 ? (b.runs / (b.balls / 6)).toFixed(2) : '0.00';
+            tr.innerHTML = `
+              <td class="py-1.5 font-bold text-white">${b.name}</td>
+              <td class="py-1.5 text-center">${o}</td>
+              <td class="py-1.5 text-center">${b.maidens}</td>
+              <td class="py-1.5 text-center font-bold text-white">${b.runs}</td>
+              <td class="py-1.5 text-center font-bold text-emerald-400">${b.wickets}</td>
+              <td class="py-1.5 text-right text-gray-300">${econ}</td>
+            `;
+            bowlTb2.appendChild(tr);
+          }
+        });
+      }
+    }
+
+    function addCommentaryFeed(ball, title, msg) {
+      const feed = document.getElementById('commentaryFeed');
+      if (!feed) return;
+      const item = document.createElement('div');
+      item.className = 'p-2 rounded-xl bg-[#182032] border border-gray-800 flex items-center justify-between text-xs';
+      item.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-lg bg-emerald-950 text-emerald-400 font-mono text-[10px] font-bold">${ball}</span>
+          <span class="font-bold text-white">${title}</span>
+        </div>
+        <span class="text-gray-400 text-[11px]">${msg}</span>
+      `;
+      feed.insertBefore(item, feed.firstChild);
+      document.getElementById('feedCountTag').textContent = `${feed.children.length} balls`;
+    }
+
+    function applyThemeUI(theme) {
+      activeStripTheme = theme;
+      window.activeStripTheme = activeStripTheme;
+      document.getElementById('tvThemePurpleWhite')?.classList.toggle('hidden', theme !== 'purple_white');
+      document.getElementById('tvThemeStadiumBlue')?.classList.toggle('hidden', theme !== 'stadium_blue');
+      document.getElementById('tvThemeClassicRed')?.classList.toggle('hidden', theme !== 'classic_red');
+
+      ['purple_white', 'stadium_blue', 'classic_red'].forEach(s => {
+        const btn = document.getElementById(`themeBtn_${s}`);
+        if (btn) {
+          btn.className = (s === theme)
+            ? 'p-3 rounded-2xl border border-emerald-500 bg-emerald-950/30 text-left btn-touch transition'
+            : 'p-3 rounded-2xl border border-gray-800 bg-[#182032] text-left btn-touch transition';
+        }
+      });
+      syncStandaloneOverlay();
+    }
+    window.applyThemeUI = applyThemeUI;
+
+    function changeActiveTheme(theme) {
+      applyThemeUI(theme);
+      broadcastState();
+      showToast(`थीम: ${theme.replace('_', ' ').toUpperCase()}`);
+    }
+
+    function cycleStripTheme() {
+      const list = ['purple_white', 'stadium_blue', 'classic_red'];
+      const next = list[(list.indexOf(activeStripTheme) + 1) % list.length];
+      changeActiveTheme(next);
+    }
+
+    function triggerBroadcastTestAlert(text) {
+      const wrap = document.getElementById('overlayAlertWrapper');
+      const badge = document.getElementById('overlayAlertBadge');
+      if (wrap && badge) {
+        badge.textContent = text;
+        wrap.classList.remove('hidden');
+        setTimeout(() => wrap.classList.add('hidden'), 3500);
+      }
+    }
+
+    function switchTab(tabId) {
+      document.getElementById('tabScorer')?.classList.toggle('hidden', tabId !== 'scorer');
+      document.getElementById('tabScorecard')?.classList.toggle('hidden', tabId !== 'scorecard');
+      document.getElementById('tabPrism')?.classList.toggle('hidden', tabId !== 'prism');
+
+      ['scorer', 'scorecard', 'prism'].forEach(t => {
+        const btn = document.getElementById(`navBtn${capitalize(t)}`);
+        if (btn) {
+          btn.className = (t === tabId)
+            ? 'flex flex-col items-center justify-center py-1.5 rounded-2xl bg-emerald-600 text-white btn-touch transition'
+            : 'flex flex-col items-center justify-center py-1.5 rounded-2xl text-gray-400 hover:text-white btn-touch transition';
+        }
+      });
+    }
+
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+
+    function openAppModal(id) {
+      document.getElementById(id)?.classList.remove('hidden');
+    }
+    function closeAppModal(id) {
+      document.getElementById(id)?.classList.add('hidden');
+    }
+
+    function showToast(msg) {
+      if (isPrismOverlayMode) return;
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = 'bg-gray-900 border border-emerald-500/80 text-white text-xs font-semibold px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2 transition-all duration-300 pointer-events-auto';
+      toast.innerHTML = `<span>🏏</span> <span>${msg}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 2600);
+    }
+
+    function copyScorecardText() {
+      const inn1 = MATCH_DATA.inn1;
+      if (!inn1) return;
+      let text = `🏏 ${(MATCH_DATA.meta.tournament || 'CRICKET MATCH').toUpperCase()}\n${inn1.batTeam.name}: ${inn1.runs}/${inn1.wickets} (${inn1.overs}.${inn1.ballsInOver} ov)\n`;
+      if (MATCH_DATA.inn2) {
+        text += `${MATCH_DATA.inn2.batTeam.name}: ${MATCH_DATA.inn2.runs}/${MATCH_DATA.inn2.wickets} (${MATCH_DATA.inn2.overs}.${MATCH_DATA.inn2.ballsInOver} ov)\n`;
+      }
+      navigator.clipboard.writeText(text).then(() => showToast('स्कोरकार्ड कॉपी हो गया!'));
+    }
+
+    function playAudioTone(type) {
+      if (!audioOn || isPrismOverlayMode) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'four' || type === 'six') {
+          osc.frequency.setValueAtTime(type === 'four' ? 440 : 580, now);
+          osc.frequency.exponentialRampToValueAtTime(type === 'four' ? 880 : 1160, now + 0.3);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+        } else if (type === 'wicket') {
+          osc.frequency.setValueAtTime(320, now);
+          osc.frequency.linearRampToValueAtTime(140, now + 0.35);
+          gain.gain.setValueAtTime(0.3, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+        } else if (type === 'extra') {
+          osc.frequency.setValueAtTime(280, now);
+          osc.frequency.linearRampToValueAtTime(220, now + 0.15);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.15);
+        } else {
+          osc.frequency.setValueAtTime(380, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+        }
+        osc.start(now);
+        osc.stop(now + (type === 'bat' ? 0.08 : 0.35));
+      } catch (e) {}
+    }
+
+    function toggleSoundFx() {
+      audioOn = !audioOn;
+      document.getElementById('audioIcon').textContent = audioOn ? '🔊' : '🔇';
+      showToast(audioOn ? 'Sound चालू है' : 'Sound बंद है');
+    }
+
+    window.addEventListener('load', () => {
+      detectOverlayMode();
+      applyThemeUI(activeStripTheme);
+      try {
+        const saved = localStorage.getItem('cricket_studio_live_data');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.data && parsed.data.meta && parsed.data.meta.started) {
+            MATCH_DATA = parsed.data;
+            window.MATCH_DATA = MATCH_DATA;
+            if (parsed.theme) applyThemeUI(parsed.theme);
+            document.getElementById('viewAuth').classList.add('hidden');
+            document.getElementById('liveMatchContainer').classList.remove('hidden');
+            updateMasterUI(false);
+          }
+        }
+      } catch(e) {}
+    });
+
+    window.addEventListener('hashchange', () => {
+      detectOverlayMode();
+      updateMasterUI(false);
+    });
+  </script>
+</body>
+</html>

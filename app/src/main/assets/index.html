@@ -160,11 +160,27 @@
 
   <!-- STANDALONE PRISM / OBS TRANSPARENT OVERLAY CANVAS -->
   <div id="standaloneOverlayCanvas" class="hidden">
-    <div id="overlayAlertWrapper" class="hidden self-center mb-4 animate-broadcast-banner pointer-events-none">
-      <div id="overlayAlertBadge" class="px-10 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-rose-600 text-white font-tv font-black text-3xl uppercase tracking-widest shadow-2xl border-2 border-white">
-        FOUR!
+    <!-- CLEAN TRANSPARENT WATERMARK (NO LOGO, ONLY TEXT OVER RIGHT SECTION) -->
+    <div id="overlayWatermarkBadge" class="self-end mr-6 sm:mr-12 mb-1 pointer-events-none select-none z-30">
+      <span id="overlayWatermarkText" class="text-white/70 font-tv font-black text-xs sm:text-sm tracking-[0.25em] uppercase drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">CRIC SCORE SANDEEP</span>
+    </div>
+
+    <!-- GRAND MATCH WINNER BANNER (OVERLAY ACROSS SCORE STRIP) -->
+    <div id="overlayWinnerBanner" class="hidden w-full max-w-5xl mx-auto mb-2 pointer-events-none transition-all duration-500">
+      <div class="w-full py-3 sm:py-4 px-4 sm:px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black font-tv font-black text-xl sm:text-3xl text-center uppercase tracking-wider shadow-2xl border-4 border-white flex items-center justify-center gap-3 animate-pulse">
+        <span class="text-2xl sm:text-4xl">🏆</span>
+        <span id="overlayWinnerText">TEAM A WON BY 15 RUNS</span>
+        <span class="text-2xl sm:text-4xl">🏆</span>
       </div>
     </div>
+
+    <!-- GRAND BROADCAST EVENT BANNER (SIX, FOUR, OUT - FULL WIDTH OVER SCORE STRIP) -->
+    <div id="overlayAlertWrapper" class="hidden w-full max-w-5xl mx-auto mb-2 pointer-events-none transition-all duration-300">
+      <div id="overlayAlertBadge" class="w-full py-3.5 sm:py-5 px-4 rounded-2xl text-white font-tv font-black text-2xl sm:text-4xl md:text-5xl text-center uppercase tracking-widest shadow-2xl border-4 border-white flex items-center justify-center gap-3">
+        💥 MAXIMUM SIX! 💥
+      </div>
+    </div>
+
     <div id="overlayDynamicStripContainer" class="w-full max-w-5xl mx-auto shadow-2xl"></div>
   </div>
 
@@ -873,6 +889,25 @@
               </div>
             </div>
 
+            <!-- WATERMARK BRANDING SETTING -->
+            <div class="p-3 bg-[#182032] rounded-2xl border border-gray-800 space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-[11px] font-bold text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>✨</span> <span>Watermark (राइट साइड नीचे)</span>
+                </label>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="toggleWatermark" checked onchange="updateWatermarkSetting()" class="sr-only peer">
+                  <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+              <div class="flex items-center gap-2">
+                <input id="inputWatermarkText" type="text" value="CRIC SCORE SANDEEP" placeholder="CRIC SCORE SANDEEP" oninput="updateWatermarkSetting()" class="w-full bg-[#121826] border border-gray-700 rounded-xl px-3 py-2 text-xs text-white font-bold tracking-wider focus:border-emerald-500 focus:outline-none uppercase">
+                <button onclick="updateWatermarkSetting(true)" class="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shrink-0 btn-touch">
+                  Save
+                </button>
+              </div>
+            </div>
+
             <div class="pt-2 border-t border-gray-800 grid grid-cols-4 gap-2">
               <button onclick="triggerBroadcastTestAlert('FOUR!')" class="py-2.5 rounded-xl bg-blue-600/30 border border-blue-500/40 text-blue-300 font-bold text-[11px] btn-touch">Test 4</button>
               <button onclick="triggerBroadcastTestAlert('SIX!')" class="py-2.5 rounded-xl bg-purple-600/30 border border-purple-500/40 text-purple-300 font-bold text-[11px] btn-touch">Test 6</button>
@@ -1228,37 +1263,77 @@
       };
     }
 
-    // Confetti Fireworks Generator
+    // Confetti & Fireworks Celebration Generator
     function fireConfettiEffect(type = 'win') {
-      if (typeof confetti === 'function') {
-        if (type === 'milestone') {
+      if (typeof confetti !== 'function') return;
+      if (type === 'six') {
+        // Fireworks blast for SIX
+        confetti({
+          particleCount: 100,
+          spread: 100,
+          origin: { y: 0.8 },
+          colors: ['#c084fc', '#e879f9', '#38bdf8', '#fbbf24', '#ffffff']
+        });
+        setTimeout(() => {
           confetti({
-            particleCount: 70,
-            spread: 80,
-            origin: { y: 0.6 },
-            colors: ['#fbbf24', '#f59e0b', '#fef08a', '#ffffff']
+            particleCount: 60,
+            angle: 60,
+            spread: 75,
+            origin: { x: 0.05, y: 0.8 },
+            colors: ['#a855f7', '#ec4899', '#ffffff']
           });
-        } else {
-          const duration = 2.5 * 1000;
-          const end = Date.now() + duration;
-          (function frame() {
-            confetti({
-              particleCount: 5,
-              angle: 60,
-              spread: 55,
-              origin: { x: 0 },
-              colors: ['#22c55e', '#3b82f6', '#f59e0b', '#ec4899']
-            });
-            confetti({
-              particleCount: 5,
-              angle: 120,
-              spread: 55,
-              origin: { x: 1 },
-              colors: ['#22c55e', '#3b82f6', '#f59e0b', '#ec4899']
-            });
-            if (Date.now() < end) requestAnimationFrame(frame);
-          }());
-        }
+          confetti({
+            particleCount: 60,
+            angle: 120,
+            spread: 75,
+            origin: { x: 0.95, y: 0.8 },
+            colors: ['#3b82f6', '#fbbf24', '#ffffff']
+          });
+        }, 150);
+      } else if (type === 'wicket') {
+        // Red fireworks blast for WICKET
+        confetti({
+          particleCount: 80,
+          spread: 90,
+          origin: { y: 0.8 },
+          colors: ['#ef4444', '#dc2626', '#b91c1c', '#ffffff', '#fbbf24']
+        });
+      } else if (type === 'four') {
+        // Blue electric blast for FOUR
+        confetti({
+          particleCount: 70,
+          spread: 80,
+          origin: { y: 0.8 },
+          colors: ['#3b82f6', '#06b6d4', '#10b981', '#ffffff']
+        });
+      } else if (type === 'milestone') {
+        confetti({
+          particleCount: 80,
+          spread: 85,
+          origin: { y: 0.6 },
+          colors: ['#fbbf24', '#f59e0b', '#fef08a', '#ffffff']
+        });
+      } else {
+        // Grand championship fireworks
+        const duration = 3.5 * 1000;
+        const end = Date.now() + duration;
+        (function frame() {
+          confetti({
+            particleCount: 6,
+            angle: 60,
+            spread: 60,
+            origin: { x: 0, y: 0.8 },
+            colors: ['#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#fbbf24']
+          });
+          confetti({
+            particleCount: 6,
+            angle: 120,
+            spread: 60,
+            origin: { x: 1, y: 0.8 },
+            colors: ['#22c55e', '#3b82f6', '#f59e0b', '#ec4899', '#fbbf24']
+          });
+          if (Date.now() < end) requestAnimationFrame(frame);
+        }());
       }
     }
 
@@ -1278,6 +1353,36 @@
       }
     }
 
+    let currentWatermarkText = localStorage.getItem('cric_watermark_text') || 'CRIC SCORE SANDEEP';
+    let currentShowWatermark = localStorage.getItem('cric_show_watermark') !== 'false';
+
+    function applyWatermark(text, show) {
+      currentWatermarkText = text || 'CRIC SCORE SANDEEP';
+      currentShowWatermark = show !== false;
+      const el = document.getElementById('overlayWatermarkText');
+      const badge = document.getElementById('overlayWatermarkBadge');
+      if (el) el.textContent = currentWatermarkText;
+      if (badge) badge.classList.toggle('hidden', !currentShowWatermark);
+
+      const input = document.getElementById('inputWatermarkText');
+      const toggle = document.getElementById('toggleWatermark');
+      if (input && input.value !== currentWatermarkText) input.value = currentWatermarkText;
+      if (toggle && toggle.checked !== currentShowWatermark) toggle.checked = currentShowWatermark;
+    }
+
+    function updateWatermarkSetting(toast = false) {
+      const input = document.getElementById('inputWatermarkText');
+      const toggle = document.getElementById('toggleWatermark');
+      if (input) currentWatermarkText = input.value.trim() || 'CRIC SCORE SANDEEP';
+      if (toggle) currentShowWatermark = toggle.checked;
+
+      localStorage.setItem('cric_watermark_text', currentWatermarkText);
+      localStorage.setItem('cric_show_watermark', currentShowWatermark.toString());
+      applyWatermark(currentWatermarkText, currentShowWatermark);
+      broadcastState();
+      if (toast) showToast(`✅ Watermark: ${currentWatermarkText}`);
+    }
+
     function checkAndListenToFirebaseMatch() {
       if (!firebaseDb) return;
       const fullUrl = window.location.href;
@@ -1295,6 +1400,9 @@
             if (val.theme) {
               activeStripTheme = val.theme;
               applyThemeUI(activeStripTheme);
+            }
+            if (val.watermark !== undefined) {
+              applyWatermark(val.watermark, val.showWatermark !== false);
             }
             updateMasterUI(false);
             if (val.animText) {
@@ -1558,6 +1666,8 @@
           firebaseDb.ref('live_matches/' + matchId).set({
             data: MATCH_DATA,
             theme: activeStripTheme,
+            watermark: currentWatermarkText,
+            showWatermark: currentShowWatermark,
             animText: animText || null,
             updatedAt: Date.now()
           });
@@ -2122,6 +2232,7 @@
 
       openAppModal('matchFinishModal');
       fireConfettiEffect('win');
+      updateMasterUI(true, `🏆 ${winner.toUpperCase()} - ${margin}!`);
     }
 
     function renderBallCircles(container, deliveries) {
@@ -2151,10 +2262,32 @@
 
       const src = document.getElementById(activeId);
       const target = document.getElementById('overlayDynamicStripContainer');
+      const winBanner = document.getElementById('overlayWinnerBanner');
+      const winText = document.getElementById('overlayWinnerText');
+
+      if (MATCH_DATA.meta && MATCH_DATA.meta.finished) {
+        const fullResult = MATCH_DATA.meta.resultText || 'MATCH CONCLUDED';
+        if (winBanner && winText) {
+          winText.textContent = fullResult;
+          winBanner.classList.remove('hidden');
+        }
+      } else if (winBanner) {
+        winBanner.classList.add('hidden');
+      }
+
       if (src && target) {
         target.innerHTML = src.outerHTML;
         const first = target.firstElementChild;
         if (first) first.classList.remove('hidden');
+
+        // Append grand winner celebration ribbon right on the bottom of the strip in Prism
+        if (MATCH_DATA.meta && MATCH_DATA.meta.finished) {
+          const res = MATCH_DATA.meta.resultText || 'MATCH CONCLUDED';
+          const badge = document.createElement('div');
+          badge.className = 'mt-2 w-full py-2.5 sm:py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black font-tv font-black text-center text-lg sm:text-2xl uppercase tracking-wider shadow-2xl border-2 border-white flex items-center justify-center gap-2 animate-pulse';
+          badge.innerHTML = `<span class="text-xl sm:text-2xl">🏆</span> <span>${res}</span> <span class="text-xl sm:text-2xl">🏆</span>`;
+          target.appendChild(badge);
+        }
       }
     }
 
@@ -2297,11 +2430,37 @@
     function triggerBroadcastTestAlert(text) {
       const wrap = document.getElementById('overlayAlertWrapper');
       const badge = document.getElementById('overlayAlertBadge');
-      if (wrap && badge) {
-        badge.textContent = text;
-        wrap.classList.remove('hidden');
-        setTimeout(() => wrap.classList.add('hidden'), 3200);
+      if (!wrap || !badge) return;
+
+      const upper = (text || '').toUpperCase();
+      let baseClass = "w-full py-3.5 sm:py-5 px-4 rounded-2xl text-white font-tv font-black text-2xl sm:text-4xl md:text-5xl text-center uppercase tracking-widest shadow-2xl border-4 border-white flex items-center justify-center gap-3 transition-transform animate-bounce";
+
+      if (upper.includes('6') || upper.includes('SIX')) {
+        badge.className = baseClass + " bg-gradient-to-r from-purple-700 via-pink-600 to-indigo-700 ring-4 ring-purple-300";
+        badge.innerHTML = `<span class="text-3xl sm:text-5xl">💥</span> <span>MAXIMUM SIX!</span> <span class="text-3xl sm:text-5xl">💥</span>`;
+        fireConfettiEffect('six');
+      } else if (upper.includes('OUT') || upper.includes('WICKET')) {
+        badge.className = baseClass + " bg-gradient-to-r from-red-700 via-rose-600 to-red-900 ring-4 ring-red-300";
+        badge.innerHTML = `<span class="text-3xl sm:text-5xl">☝️</span> <span>WICKET DOWN!</span> <span class="text-3xl sm:text-5xl">☝️</span>`;
+        fireConfettiEffect('wicket');
+      } else if (upper.includes('4') || upper.includes('FOUR')) {
+        badge.className = baseClass + " bg-gradient-to-r from-blue-700 via-cyan-600 to-teal-600 ring-4 ring-cyan-300";
+        badge.innerHTML = `<span class="text-3xl sm:text-5xl">⚡</span> <span>CRACKING FOUR!</span> <span class="text-3xl sm:text-5xl">⚡</span>`;
+        fireConfettiEffect('four');
+      } else if (upper.includes('WON') || upper.includes('WIN')) {
+        badge.className = baseClass + " bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 text-black ring-4 ring-yellow-200";
+        badge.innerHTML = `<span class="text-3xl sm:text-5xl">🏆</span> <span>${text}</span> <span class="text-3xl sm:text-5xl">🏆</span>`;
+        fireConfettiEffect('win');
+      } else {
+        badge.className = baseClass + " bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600";
+        badge.innerHTML = `<span>${text}</span>`;
       }
+
+      wrap.classList.remove('hidden');
+      if (wrap._timer) clearTimeout(wrap._timer);
+      wrap._timer = setTimeout(() => {
+        wrap.classList.add('hidden');
+      }, 3500);
     }
 
     function switchTab(tabId) {
